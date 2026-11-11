@@ -1582,14 +1582,14 @@ struct CellMetrics {
 fn cell_metrics(window: &Window) -> CellMetrics {
     let ts = window.text_system();
     let id = ts.resolve_font(&cell_font(false, false));
-    let (fs, scale) = (crate::settings::font_size(), window.scale_factor());
-    // Asked for on every frame of every terminal; the answer only changes with the font, size or scale.
-    thread_local!(static LAST: Cell<Option<((FontId, u32, u32), CellMetrics)>> = const { Cell::new(None) });
-    let key = (id, fs.to_bits(), scale.to_bits());
+    let (fs, scale, lh) = (crate::settings::font_size(), window.scale_factor(), crate::settings::line_height());
+    // Asked for on every frame of every terminal; the answer only changes with the font, size, scale or line height.
+    thread_local!(static LAST: Cell<Option<((FontId, u32, u32, u32), CellMetrics)>> = const { Cell::new(None) });
+    let key = (id, fs.to_bits(), scale.to_bits(), lh.to_bits());
     if let Some((_, metrics)) = LAST.get().filter(|(last, _)| *last == key) {
         return metrics;
     }
-    let metrics = font_cell_metrics(ts, id, fs, scale);
+    let metrics = with_line_height(font_cell_metrics(ts, id, fs, scale), lh, scale);
     LAST.set(Some((key, metrics)));
     metrics
 }
@@ -1650,6 +1650,25 @@ fn font_cell_metrics(ts: &WindowTextSystem, id: FontId, fs: f32, scale: f32) -> 
         underline_thickness: px(ul_thick.ceil().max(1.0) / scale),
         strike: px((baseline - st_pos).round() / scale),
         strike_thickness: px(st_thick.ceil().max(1.0) / scale),
+    }
+}
+
+// Personal build: taller rows, like Ghostty's adjust-cell-height. The extra
+// device pixels are split above and below the text, so glyphs stay centered
+// and row backgrounds / box drawing stretch to the new height.
+fn with_line_height(m: CellMetrics, lh: f32, scale: f32) -> CellMetrics {
+    let height = f32::from(m.size.height) * scale;
+    let extra = (height * (lh - 1.0)).round().max(0.0);
+    if extra == 0.0 {
+        return m;
+    }
+    let top = px((extra / 2.0).floor() / scale);
+    CellMetrics {
+        size: size(m.size.width, px((height + extra) / scale)),
+        baseline: m.baseline + top,
+        underline: m.underline + top,
+        strike: m.strike + top,
+        ..m
     }
 }
 
@@ -3122,6 +3141,22 @@ mod tests {
             }
         }
         crate::settings::set((*original).clone());
+    }
+
+    #[test]
+    fn line_height_adds_whole_device_pixels_around_the_text() {
+        use super::*;
+        // JetBrains Mono at 14px, scale 2 (see the Ghostty table below).
+        let base = CellMetrics {
+            size: size(px(8.5), px(18.5)), baseline: px(14.5), underline: px(15.5),
+            underline_thickness: px(1.), strike: px(10.), strike_thickness: px(1.),
+        };
+        let tall = with_line_height(base, 1.3, 2.);
+        assert_eq!(tall.size, size(px(8.5), px(24.)));
+        for (a, b) in [(tall.baseline, base.baseline), (tall.underline, base.underline), (tall.strike, base.strike)] {
+            assert_eq!(a - b, px(2.5));
+        }
+        assert_eq!(with_line_height(base, 1.0, 2.).size, base.size);
     }
 
     #[cfg(target_os = "linux")]

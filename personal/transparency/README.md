@@ -25,6 +25,11 @@ mattiabestiaccia/herdr-app (backup del ramo). Il ramo pilota
   scegliere con il cambio layout. Valori:
   `personal/transparency/prototype.py --home ~/.config/herdr-app set blurred 0.65`
   e `... image <percorso|desktop>`. Herdr ufficiale ignora le chiavi nuove.
+- **Interlinea**: `"line_height"` in `~/.config/herdr-app/settings.json`,
+  multiplo dell'altezza di riga del font (`1` = come upstream, da `1` a `2`).
+  Le righe si allungano e il testo resta centrato; fondi e caratteri di
+  disegno riempiono la riga intera. Herdr ufficiale ignora la chiave, ma la
+  perde se si salvano le impostazioni da lì.
 - **`ctrl-cmd-f`**: il `keys.json` della home reale è personalizzato, quindi
   non migra da solo. Aggiungere `"ctrl-cmd-f": "window.fullscreen"` alla
   sezione `global` solo dopo aver lasciato Herdr ufficiale, che non conosce

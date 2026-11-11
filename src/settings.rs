@@ -394,6 +394,9 @@ pub struct Person {
     pub pane_scrollbars: bool,
     /// Minimum terminal text contrast ratio; 1 leaves program colors unchanged.
     pub minimum_contrast: f32,
+    /// Terminal row height as a multiple of the font's own (personal build).
+    #[serde(skip_serializing_if = "is_one")]
+    pub line_height: f32,
     /// macOS Option sends Alt shortcuts, or follows the keyboard layout.
     #[serde(skip_serializing_if = "OptionAsAlt::is_auto")]
     pub option_as_alt: OptionAsAlt,
@@ -442,6 +445,10 @@ fn is_true(b: &bool) -> bool {
     *b
 }
 
+fn is_one(v: &f32) -> bool {
+    *v == 1.0
+}
+
 impl Default for Person {
     fn default() -> Self {
         Person {
@@ -456,6 +463,7 @@ impl Default for Person {
             clipboard_write: true,
             pane_scrollbars: true,
             minimum_contrast: 1.0,
+            line_height: 1.0,
             option_as_alt: OptionAsAlt::Auto,
             appearance: Appearance::System,
             theme: None,
@@ -496,6 +504,7 @@ pub struct Settings {
     pub fullscreen_image: Option<std::path::PathBuf>,
     pub clipboard_write: bool,
     pub minimum_contrast: f32,
+    pub line_height: f32,
     pub option_as_alt: OptionAsAlt,
     pub sounds: Sounds,
 }
@@ -541,6 +550,7 @@ impl Default for Settings {
             fullscreen_image: None,
             clipboard_write: true,
             minimum_contrast: 1.0,
+            line_height: 1.0,
             option_as_alt: OptionAsAlt::Auto,
             sounds: Sounds::default(),
         }
@@ -595,6 +605,7 @@ impl Settings {
             sounds: person.sounds.clone(),
             clipboard_write: person.clipboard_write,
             minimum_contrast: person.minimum_contrast,
+            line_height: person.line_height,
             option_as_alt: person.option_as_alt,
         }
     }
@@ -642,6 +653,9 @@ impl Settings {
         }
         if !(1.0..=21.0).contains(&self.minimum_contrast) {
             out.push(format!("minimum_contrast {} is outside 1..21", self.minimum_contrast));
+        }
+        if !(1.0..=2.0).contains(&self.line_height) {
+            out.push(format!("line_height {} is outside 1..2", self.line_height));
         }
         if !(6.0..=72.0).contains(&self.font_size) {
             out.push(format!("font_size {} is outside 6..72", self.font_size));
@@ -783,6 +797,12 @@ pub fn font_size() -> f32 {
     get().font_size * zoom()
 }
 
+/// Out-of-range values are reported by `problems()` and drawn as 1.
+pub fn line_height() -> f32 {
+    let lh = get().line_height;
+    if (1.0..=2.0).contains(&lh) { lh } else { 1.0 }
+}
+
 pub fn ui_font_size() -> f32 {
     get().ui_font_size * zoom()
 }
@@ -912,6 +932,19 @@ mod tests {
             assert_eq!(serde_json::to_value(settings).unwrap()["option_as_alt"], value);
         }
         assert!(serde_json::from_value::<Person>(serde_json::json!({"option_as_alt": "invalid"})).is_err());
+    }
+
+    #[test]
+    fn line_height_defaults_to_one_and_validates_the_range() {
+        let default: Person = serde_json::from_str("{}").unwrap();
+        assert_eq!(default.line_height, 1.0);
+        assert!(serde_json::to_value(&default).unwrap().get("line_height").is_none());
+        for lh in [1.0, 1.25, 2.0, 0.9, 2.1] {
+            let person: Person = serde_json::from_value(serde_json::json!({"line_height": lh})).unwrap();
+            let settings = Settings::compose(&person, &crate::layout::Look::default(), true);
+            assert_eq!(settings.line_height, lh);
+            assert_eq!(settings.problems().is_empty(), (1.0..=2.0).contains(&lh));
+        }
     }
 
     #[test]
