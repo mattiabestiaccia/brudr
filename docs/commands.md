@@ -265,6 +265,16 @@ Swap a pane (default: the focused one) with its neighbor in a direction, or with
 | `pane` | no |
 | `target` | no |
 
+## `pane.resize`
+
+Give a pane a share of its row's width (width: 0 to 1) and/or of its column's height (height: 0 to 1, or "max": the other panes of the column down to their minimum). Repeating the same call on the same pane restores the sizes from before it, until the tab's layout changes.
+
+| Argument | Required |
+|---|---|
+| `pane` | no |
+| `width` | no |
+| `height` | no |
+
 ## `terminal.peek`
 
 Peek at a running terminal over the tab, with keep-as-tab and close controls.

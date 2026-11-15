@@ -60,6 +60,7 @@ pub const COMMANDS: &[Command] = &[
     cmd("pane.focus", &[opt("pane"), opt("terminal")], "Focus a pane (or the pane showing a terminal)."),
     cmd("pane.go", &[req("direction")], "Focus the pane or focusable mod to the \"left\", \"right\", \"up\" or \"down\"."),
     cmd("pane.swap", &[opt("direction"), opt("pane"), opt("target")], "Swap a pane (default: the focused one) with its neighbor in a direction, or with another pane of its tab (target). Give exactly one of direction or target."),
+    cmd("pane.resize", &[opt("pane"), opt("width"), opt("height")], "Give a pane a share of its row's width (width: 0 to 1) and/or of its column's height (height: 0 to 1, or \"max\": the other panes of the column down to their minimum). Repeating the same call on the same pane restores the sizes from before it, until the tab's layout changes."),
     cmd("terminal.peek", &[req("terminal")], "Peek at a running terminal over the tab, with keep-as-tab and close controls."),
     cmd("terminal.show", &[opt("terminal"), opt("pane")], "Show a terminal in a pane for now, in place of its own (no terminal: back)."),
     cmd("terminal.copy", &[], "Copy the focused terminal's selection. With nothing selected, that key goes to the program."),
@@ -199,7 +200,7 @@ mod tests {
 
     #[test]
     fn malformed_targets_cannot_fall_back_to_the_current_work() {
-        for (name, arg) in [("tab.close", "id"), ("pane.close", "pane"), ("space.close", "id"), ("tab.new", "space"), ("terminal.show", "terminal"), ("pane.swap", "pane"), ("pane.swap", "target")] {
+        for (name, arg) in [("tab.close", "id"), ("pane.close", "pane"), ("space.close", "id"), ("tab.new", "space"), ("terminal.show", "terminal"), ("pane.swap", "pane"), ("pane.swap", "target"), ("pane.resize", "pane")] {
             let c = find(name).unwrap();
             for value in [json!(123), json!(false), json!([]), json!({"id": "target"})] {
                 let error = validate_args(c, &json!({arg: value})).unwrap_err();

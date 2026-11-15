@@ -136,7 +136,7 @@ impl Document {
                 .map(|t| {
                     let mut root = t.root.clone();
                     map_node(&mut root, &map);
-                    Tab { id: map(&t.id), name: t.name.clone(), root, focused: None, before: vec![], zoomed: None, settled: None, rest: t.rest.clone() }
+                    Tab { id: map(&t.id), name: t.name.clone(), root, focused: None, before: vec![], zoomed: None, settled: None, resize: None, rest: t.rest.clone() }
                 })
                 .collect(),
             rest: s.rest.clone(),

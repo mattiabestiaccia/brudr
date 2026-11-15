@@ -575,7 +575,7 @@ The main ones:
 - Panes: `pane.split {direction: "right" | "down", pane?, argv? | mod?, props?}` (a new
   terminal, or a mod pane), `pane.close {pane?}`,
   `pane.zoom {pane?}`, `pane.focus {pane | terminal}`, `pane.go {direction}`,
-  `pane.swap {pane?, direction | target}`.
+  `pane.swap {pane?, direction | target}`, `pane.resize {pane?, width?, height?}`.
   `pane.go` prefers the most recently focused pane along the nearest edge in that
   direction; unvisited panes fall back to overlap, then top/left layout order.
   `pane.go` also reaches visible mods whose `mod.json` says `"focusable": true`, and
@@ -584,6 +584,10 @@ The main ones:
   `pane.swap {target}` trades the places of `pane` (default: the focused one) and
   `target`, another pane of the same tab; give `direction` or `target`, not both.
   A swap moves panes, not focus: the focused pane stays focused in its new place.
+  `pane.resize` gives `pane` (default: the focused one) `width` (0 to 1) of its nearest row and
+  `height` (0 to 1, or `"max"`: the other panes of its nearest column down to their minimum) of its
+  nearest column, on the shown tab; give one or both. Repeating the same call on the same pane while
+  the tab's layout is unchanged puts the sizes from before back; a restart forgets them.
   `pane.focus {terminal}` prefers the first visible layout terminal block showing that
   address, then its model pane. Clicking a terminal block focuses it too.
   While a layout terminal block is focused, implicit split/close/zoom/go/swap and

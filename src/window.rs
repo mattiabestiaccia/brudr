@@ -11,7 +11,7 @@ mod pane_drag;
 mod pane_size;
 mod titlebar;
 
-use crate::layout::{Axis, Background as Paint, Content, Fit, HeaderContent, Kind, Line, Node, PaneFrame, Size as Span};
+use crate::layout::{Axis, Background as Paint, Content, Fit, HeaderContent, Kind, Line, Node, PaneFrame, Share, Size as Span};
 use crate::model::{self, Tab, Model};
 use crate::mods::{self, Found, Instance, Request};
 use crate::settings;
@@ -2847,7 +2847,7 @@ impl AppWindow {
             if !args.is_object() { args = json!({}); }
             args["machine"] = json!(machine);
         }
-        if matches!(name, "space.new" | "space.close" | "space.rename" | "space.move" | "tab.new" | "tab.close" | "tab.rename" | "tab.move" | "pane.split" | "pane.close" | "pane.swap" | "terminal.keep" | "terminal.park") {
+        if matches!(name, "space.new" | "space.close" | "space.rename" | "space.move" | "tab.new" | "tab.close" | "tab.rename" | "tab.move" | "pane.split" | "pane.close" | "pane.swap" | "pane.resize" | "terminal.keep" | "terminal.park") {
             let node = ["id", "space", "pane"].into_iter().find_map(|k| Self::arg(&args, k));
             let target = node.and_then(|id| self.model.space(id).or_else(|| self.model.space_of(id))).or_else(|| self.model.active_space());
             let machine = if name == "space.new" { Self::arg(&args, "machine") }
@@ -3098,6 +3098,46 @@ impl AppWindow {
                 if let Err(e) = r {
                     return self.fail(e);
                 }
+            }
+            "pane.resize" => {
+                let pane = Self::owned(a, "pane").or_else(|| self.model.focused_pane());
+                let width = match a.get("width").filter(|v| !v.is_null()) {
+                    None => None,
+                    Some(v) => match v.as_f64() {
+                        Some(f) if (0.0..=1.0).contains(&f) => Some(f as f32),
+                        _ => return self.fail("pane.resize width is a number from 0 to 1"),
+                    },
+                };
+                let height = match a.get("height").filter(|v| !v.is_null()) {
+                    None => None,
+                    Some(v) if v.as_str() == Some("max") => Some(Share::Minimum),
+                    Some(v) => match v.as_f64() {
+                        Some(f) if (0.0..=1.0).contains(&f) => Some(Share::Fraction(f as f32)),
+                        _ => return self.fail("pane.resize height is a number from 0 to 1, or \"max\""),
+                    },
+                };
+                if width.is_none() && height.is_none() {
+                    return self.fail("pane.resize needs width, height or both");
+                }
+                let Some(pane) = pane else { return self.fail("no pane to resize") };
+                // Measured on screen as the divider drag measures: sizes are stored unzoomed.
+                let zoom = settings::zoom();
+                let result = {
+                    let bounds = self.bounds.borrow();
+                    let px = |id: &str, axis: Axis| bounds.get(id).map(|b| f32::from(if axis == Axis::Row { b.size.width } else { b.size.height }) / zoom);
+                    // Only the shown tab is measured: a hidden one's sizes on screen are stale.
+                    let shown = self.model.active_tab().filter(|t| t.root.find(&pane).is_some()).map(|t| t.id.clone());
+                    match shown.and_then(|tab| self.model.tab_mut(&tab)) {
+                        Some(tab) => tab.resize_pane(&pane, width, height, &px),
+                        None => Err(format!("{pane:?} is not in the shown tab")),
+                    }
+                };
+                if let Err(e) = result {
+                    return self.fail(e);
+                }
+                self.save();
+                self.publish(cx);
+                cx.notify();
             }
             // ---- terminals
             "terminal.open" => {
@@ -4683,7 +4723,7 @@ fn swap_by(args: &Value) -> Result<SwapBy<'_>, String> {
 
 fn needs_model_pane(name: &str, args: &Value) -> bool {
     match name {
-        "pane.split" | "pane.close" | "pane.zoom" | "pane.swap" | "terminal.show" => AppWindow::arg(args, "pane").is_none(),
+        "pane.split" | "pane.close" | "pane.zoom" | "pane.swap" | "pane.resize" | "terminal.show" => AppWindow::arg(args, "pane").is_none(),
         "pane.go" => true,
         "terminal.open" | "terminal.keep" => matches!(AppWindow::arg(args, "place"), Some("right" | "down")),
         _ => false,
@@ -6188,11 +6228,11 @@ export default class SystemToast extends View {
     #[test]
     fn composition_commands_never_default_to_a_source_pane() {
         use serde_json::json;
-        for name in ["pane.split", "pane.close", "pane.zoom", "pane.go", "pane.swap", "terminal.show"] {
+        for name in ["pane.split", "pane.close", "pane.zoom", "pane.go", "pane.swap", "pane.resize", "terminal.show"] {
             assert!(super::needs_model_pane(name, &json!({})), "{name}");
             assert!(super::needs_model_pane(name, &json!({"pane": null})), "{name}");
         }
-        for name in ["pane.split", "pane.close", "pane.zoom", "pane.swap", "terminal.show"] {
+        for name in ["pane.split", "pane.close", "pane.zoom", "pane.swap", "pane.resize", "terminal.show"] {
             assert!(!super::needs_model_pane(name, &json!({"pane": "explicit-pane"})), "{name}");
         }
         assert!(super::needs_model_pane("pane.go", &json!({"pane": "explicit-pane"})));

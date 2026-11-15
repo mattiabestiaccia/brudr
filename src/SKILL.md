@@ -75,6 +75,16 @@ the same tab. Give `direction` or `target`, not both. Focus stays with the same 
 herdr-app do pane.swap '{"pane":"p12","target":"p14"}'
 ```
 
+`pane.resize {pane?, width?, height?}` gives `pane` (default: the focused one) a
+share of its row's width (`width`, 0 to 1) and of its column's height (`height`,
+0 to 1, or `"max"`: the column's other panes shrink to their minimum), measured on
+the shown tab. Repeating the same call on the same pane puts the sizes back, until
+the tab's layout changes:
+
+```sh
+herdr-app do pane.resize '{"width":0.6,"height":"max"}'
+```
+
 `terminal.search` opens a find bar in the focused terminal. It searches that
 terminal's screen and scrollback; Enter and Shift-Enter move between matches,
 Escape closes the bar while its find field has focus, and each terminal keeps its own query (reopening selects it, so typing replaces it).

@@ -81,6 +81,18 @@ A broken edit keeps the last good version and reports the error.
 
 Ctrl+Shift+P shows every command and its key (Cmd+Shift+P on macOS). Change any key in `keys.json`; see [the keys section](defaults/AGENTS.md#keys-keysjson) of the mod guide for the format, including JSON objects for named, typed command arguments.
 
+## Resize a pane
+
+`pane.resize` gives the focused pane, or `pane`, a share of its nearest row's width (`width`, 0 to 1) and of its nearest column's height (`height`, 0 to 1, or `"max"`). Shares are measured on the shown tab, so only its panes can be resized. `"max"` shrinks the column's other panes to their minimum: 24 px, or their `min` when that is larger. Give one or both.
+
+```sh
+herdr-app do pane.resize '{"width":0.6,"height":"max"}'
+```
+
+Repeating the same call on the same pane puts back the sizes from before the first call. Any change to the tab's arrangement (a split, a close, a move, a dragged divider) makes the next call start over. That memory lives in the app only, so a restart forgets it; the new sizes are saved like a divider drag.
+
+`herdr-app do` talks to the window of the app home it finds: `HERDR_APP_HOME` when it is set, else `~/.config/herdr-app`. To reach the Herdr Personal window, set `HERDR_APP_HOME` to that build's app home before running `herdr-app do`.
+
 [Layouts and mods](docs/mods.md) · [Commands](docs/commands.md)
 
 ## Updates and privacy

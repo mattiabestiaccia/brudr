@@ -773,6 +773,145 @@ pub fn snap(x: f32, y: f32, w: f32, h: f32) -> (Edge, Align) {
     (edge, align)
 }
 
+/// The smallest size `pane.resize` gives a flexible sibling, px: the same
+/// minimum a divider drag keeps.
+pub const RESIZE_MIN: f32 = 24.0;
+
+/// What `pane.resize` asks along one axis: a share of the row's width or the
+/// column's height, or (`Minimum`, height `max`) the other children shrunk to
+/// their minimum.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Share {
+    Fraction(f32),
+    Minimum,
+}
+
+/// A child of a row or column as `pane.resize` sees it: its designed size and
+/// limits, and the px it takes on screen along the axis.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Sibling {
+    pub id: String,
+    pub size: Option<Size>,
+    pub min: Option<f32>,
+    pub max: Option<f32>,
+    pub px: f32,
+}
+
+/// Splits `total` among items in proportion to their weights, each kept in
+/// its `(weight, low, high)` limits. An item that hits a limit is fixed there
+/// and the others share what is left.
+fn spread(total: f32, items: &[(f32, f32, f32)]) -> Vec<f32> {
+    let mut out = vec![0.0; items.len()];
+    let mut free: Vec<usize> = (0..items.len()).collect();
+    let mut left = total;
+    loop {
+        let wsum = free.iter().map(|&k| items[k].0).sum::<f32>().max(f32::EPSILON);
+        let shares: Vec<(usize, f32)> = free.iter().map(|&k| (k, left * items[k].0 / wsum)).collect();
+        let pinned: Vec<(usize, f32)> = shares
+            .iter()
+            .filter_map(|&(k, v)| {
+                let (_, low, high) = items[k];
+                if v < low { Some((k, low)) } else if v > high { Some((k, high)) } else { None }
+            })
+            .collect();
+        if pinned.is_empty() {
+            for (k, v) in shares {
+                out[k] = v;
+            }
+            return out;
+        }
+        for (k, v) in pinned {
+            out[k] = v;
+            left -= v;
+            free.retain(|&f| f != k);
+        }
+        if free.is_empty() {
+            return out;
+        }
+    }
+}
+
+/// New sizes for the flexible children of one row or column, so that `target`
+/// takes `share` of the space and the rest share what is left by their current
+/// weights. Fixed (`Px`) children keep their size. Returns the sizes to write
+/// for the flexible children: weights, scaled so their total stays the same.
+pub fn resize_plan(siblings: &[Sibling], target: &str, share: Share) -> Result<Vec<(String, Size)>, String> {
+    let t = siblings.iter().position(|s| s.id == target).ok_or_else(|| format!("no child {target:?} here"))?;
+    let flex: Vec<usize> = (0..siblings.len()).filter(|&i| !matches!(siblings[i].size, Some(Size::Px { .. }))).collect();
+    if !flex.contains(&t) {
+        return Err(format!("{target:?} has a fixed size (px), so it cannot be resized"));
+    }
+    let total: f32 = siblings.iter().map(|s| s.px).sum();
+    let pool: f32 = flex.iter().map(|&i| siblings[i].px).sum();
+    let low = |i: usize| RESIZE_MIN.max(siblings[i].min.unwrap_or(0.0));
+    let high = |i: usize| siblings[i].max.unwrap_or(f32::INFINITY).max(low(i));
+    let weight = |i: usize| match siblings[i].size {
+        Some(Size::Weight { weight }) => weight,
+        _ => 1.0,
+    };
+    let others: Vec<usize> = flex.iter().copied().filter(|&i| i != t).collect();
+    let others_low: f32 = others.iter().map(|&i| low(i)).sum();
+    if pool <= 0.0 || low(t) + others_low > pool {
+        return Err("the row or column is too small to resize".into());
+    }
+    let wanted = match share {
+        Share::Fraction(f) => f.clamp(0.0, 1.0) * total,
+        Share::Minimum => pool - others_low,
+    };
+    let mut px = vec![0.0f32; siblings.len()];
+    px[t] = wanted.clamp(low(t), high(t).min(pool - others_low));
+    let rest = pool - px[t];
+    match share {
+        Share::Fraction(_) => {
+            let items: Vec<_> = others.iter().map(|&i| (weight(i), low(i), high(i))).collect();
+            for (&i, v) in others.iter().zip(spread(rest, &items)) {
+                px[i] = v;
+            }
+        }
+        // Everything else sits at its minimum; only what a capped target leaves over is shared out.
+        Share::Minimum => {
+            let items: Vec<_> = others.iter().map(|&i| (weight(i), 0.0, high(i) - low(i))).collect();
+            for (&i, v) in others.iter().zip(spread(rest - others_low, &items)) {
+                px[i] = low(i) + v;
+            }
+        }
+    }
+    let weights: f32 = flex.iter().map(|&i| weight(i)).sum();
+    let scale = weights / pool;
+    Ok(flex.iter().map(|&i| (siblings[i].id.clone(), Size::Weight { weight: px[i] * scale })).collect())
+}
+
+/// `pane.resize` on a tree: the nearest container along `axis` around `pane`
+/// gives its child on the way to `pane` `share` of its space. `px` measures a
+/// child's size along an axis on screen (None: not drawn).
+pub fn resize_in(root: &mut Node, pane: &str, axis: Axis, share: Share, px: &dyn Fn(&str, Axis) -> Option<f32>) -> Result<(), String> {
+    let path = root.path_to(pane).ok_or_else(|| format!("no pane {pane:?} in this tab"))?;
+    let depth = (0..path.len() - 1)
+        .rev()
+        .find(|&d| root.find(&path[d]).and_then(Node::axis) == Some(axis))
+        .ok_or_else(|| format!("no {} holds {pane:?}", if axis == Axis::Row { "row" } else { "column" }))?;
+    let container = root.find(&path[depth]).expect("on the path");
+    if !container.resizable() {
+        return Err(format!("{:?} is not resizable", container.id));
+    }
+    let target = path[depth + 1].clone();
+    let siblings = container
+        .children()
+        .iter()
+        .filter(|c| !c.hidden)
+        .map(|c| -> Result<Sibling, String> {
+            let size = px(&c.id, axis).ok_or_else(|| format!("{:?} is not on screen", c.id))?;
+            Ok(Sibling { id: c.id.clone(), size: c.size, min: c.min, max: c.max, px: size })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    for (id, size) in resize_plan(&siblings, &target, share)? {
+        if let Some(n) = root.find_mut(&id) {
+            n.size = Some(size);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1011,5 +1150,145 @@ mod tests {
         let ids: Vec<_> = n.children().iter().map(|c| c.id.clone()).collect();
         assert_eq!(ids, ["c", "b", "a"]);
         assert_eq!(n.children()[0].size, Some(Size::Px { px: 100.0 }));
+    }
+
+    fn weighted(id: &str, weight: f32) -> Node {
+        let mut n = term(id);
+        n.size = Some(Size::Weight { weight });
+        n
+    }
+
+    fn sized(mut n: Node, size: Size) -> Node {
+        n.size = Some(size);
+        n
+    }
+
+    /// The px each node takes, as the window would measure them.
+    fn measured<'a>(pairs: &'a [(&'a str, f32)]) -> impl Fn(&str, Axis) -> Option<f32> + 'a {
+        move |id, _| pairs.iter().find(|(k, _)| *k == id).map(|(_, v)| *v)
+    }
+
+    /// A child's share of its container's flexible weights.
+    fn share_of(n: &Node, container: &str, id: &str) -> f32 {
+        let weight = |c: &Node| match c.size {
+            Some(Size::Weight { weight }) => weight,
+            None => 1.0,
+            Some(Size::Px { .. }) => 0.0,
+        };
+        let parent = n.find(container).unwrap();
+        let total: f32 = parent.children().iter().map(weight).sum();
+        weight(n.find(id).unwrap()) / total
+    }
+
+    fn close(a: f32, b: f32) -> bool {
+        (a - b).abs() < 1e-3
+    }
+
+    #[test]
+    fn one_row_gives_the_pane_its_share_and_the_rest_keep_their_proportions() {
+        let mut n = Node::container("tab", Axis::Row, vec![weighted("a", 1.0), weighted("b", 1.0), weighted("c", 2.0)]);
+        let px = [("a", 250.0), ("b", 250.0), ("c", 500.0)];
+        resize_in(&mut n, "a", Axis::Row, Share::Fraction(0.6), &measured(&px)).unwrap();
+        assert!(close(share_of(&n, "tab", "a"), 0.6), "{:?}", n.children());
+        // b and c keep their 1:2 ratio.
+        assert!(close(share_of(&n, "tab", "c") / share_of(&n, "tab", "b"), 2.0));
+        assert!(close(share_of(&n, "tab", "a") + share_of(&n, "tab", "b") + share_of(&n, "tab", "c"), 1.0));
+    }
+
+    #[test]
+    fn one_column_minimum_shrinks_the_others_and_respects_a_larger_node_min() {
+        let mut b = weighted("b", 1.0);
+        b.min = Some(100.0);
+        let mut n = Node::container("tab", Axis::Column, vec![weighted("a", 1.0), b, weighted("c", 1.0)]);
+        let px = [("a", 300.0), ("b", 300.0), ("c", 300.0)];
+        resize_in(&mut n, "a", Axis::Column, Share::Minimum, &measured(&px)).unwrap();
+        // c goes to the 24 px minimum, b to its own minimum of 100 px, a takes the rest.
+        assert!(close(share_of(&n, "tab", "a"), 776.0 / 900.0));
+        assert!(close(share_of(&n, "tab", "b"), 100.0 / 900.0));
+        assert!(close(share_of(&n, "tab", "c"), 24.0 / 900.0));
+    }
+
+    #[test]
+    fn a_height_resizes_within_the_nearest_column() {
+        // root row [col [a, b], c]: a's height is set in col, its width is not touched.
+        let col = Node::container("col", Axis::Column, vec![weighted("a", 1.0), weighted("b", 1.0)]);
+        let mut n = Node::container("root", Axis::Row, vec![col, weighted("c", 1.0)]);
+        let px = [("a", 200.0), ("b", 200.0), ("col", 400.0), ("c", 400.0)];
+        resize_in(&mut n, "a", Axis::Column, Share::Fraction(0.75), &measured(&px)).unwrap();
+        assert!(close(share_of(&n, "col", "a"), 0.75));
+        assert!(close(share_of(&n, "root", "col"), 0.5));
+    }
+
+    #[test]
+    fn nested_rows_resize_within_the_nearest_row_and_outer_panes_stay_put() {
+        // root row [row [p, q], t]: p's width is a share of inner row, t is untouched.
+        let inner = Node::container("inner", Axis::Row, vec![weighted("p", 1.0), weighted("q", 1.0)]);
+        let mut n = Node::container("root", Axis::Row, vec![inner, weighted("t", 1.0)]);
+        let px = [("p", 100.0), ("q", 100.0), ("inner", 200.0), ("t", 200.0)];
+        resize_in(&mut n, "p", Axis::Row, Share::Fraction(0.6), &measured(&px)).unwrap();
+        assert!(close(share_of(&n, "inner", "p"), 0.6));
+        assert!(close(share_of(&n, "root", "inner"), 0.5));
+        assert_eq!(n.find("t").unwrap().size, Some(Size::Weight { weight: 1.0 }));
+    }
+
+    #[test]
+    fn a_pane_in_a_column_widens_the_row_child_that_holds_the_column() {
+        // root row [col [s, u], t]: s has no row of its own below root, so root's child col takes the width.
+        let col = Node::container("col", Axis::Column, vec![weighted("s", 1.0), weighted("u", 1.0)]);
+        let mut n = Node::container("root", Axis::Row, vec![col, weighted("t", 1.0)]);
+        let px = [("col", 300.0), ("t", 300.0), ("s", 300.0), ("u", 300.0)];
+        resize_in(&mut n, "s", Axis::Row, Share::Fraction(0.6), &measured(&px)).unwrap();
+        assert!(close(share_of(&n, "root", "col"), 0.6));
+        assert!(close(share_of(&n, "col", "s"), 0.5));
+    }
+
+    #[test]
+    fn fixed_px_siblings_keep_their_size_and_the_flexible_ones_share_the_rest() {
+        let mut n = Node::container("tab", Axis::Row, vec![sized(term("a"), Size::Px { px: 200.0 }), weighted("b", 1.0), weighted("c", 1.0)]);
+        // 1000 px row: a is fixed at 200, b and c share 800.
+        let px = [("a", 200.0), ("b", 400.0), ("c", 400.0)];
+        resize_in(&mut n, "b", Axis::Row, Share::Fraction(0.6), &measured(&px)).unwrap();
+        assert_eq!(n.find("a").unwrap().size, Some(Size::Px { px: 200.0 }));
+        // b gets 60% of the 1000 px row (600 px); c gets the 200 px left in the pool.
+        assert!(close(share_of(&n, "tab", "c") / share_of(&n, "tab", "b"), 1.0 / 3.0));
+        let fixed_target = resize_in(&mut n, "a", Axis::Row, Share::Fraction(0.5), &measured(&px));
+        assert!(fixed_target.is_err());
+    }
+
+    #[test]
+    fn maximum_caps_a_pane_and_the_rest_flows_to_its_siblings() {
+        let mut a = weighted("a", 1.0);
+        a.max = Some(60.0);
+        let mut n = Node::container("tab", Axis::Row, vec![a, weighted("b", 1.0), weighted("c", 1.0)]);
+        let px = [("a", 300.0), ("b", 300.0), ("c", 300.0)];
+        resize_in(&mut n, "b", Axis::Row, Share::Fraction(0.2), &measured(&px)).unwrap();
+        // b wants 180 px; a would take 360 of the 720 left, but caps at 60.
+        assert!(close(share_of(&n, "tab", "a"), 60.0 / 900.0));
+        assert!(close(share_of(&n, "tab", "b"), 180.0 / 900.0));
+    }
+
+    #[test]
+    fn minimum_of_a_sibling_holds_when_the_pane_takes_the_space() {
+        let mut c = weighted("c", 1.0);
+        c.min = Some(500.0);
+        let mut n = Node::container("tab", Axis::Row, vec![weighted("a", 1.0), weighted("b", 1.0), c]);
+        let px = [("a", 300.0), ("b", 300.0), ("c", 300.0)];
+        // b asks for nothing: it falls to 24 px, c keeps its 500 px minimum, a takes the rest.
+        resize_in(&mut n, "b", Axis::Row, Share::Fraction(0.0), &measured(&px)).unwrap();
+        assert!(close(share_of(&n, "tab", "c"), 500.0 / 900.0));
+        assert!(close(share_of(&n, "tab", "b"), 24.0 / 900.0));
+    }
+
+    #[test]
+    fn resizing_refuses_what_it_cannot_measure_or_resize() {
+        let mut n = Node::container("tab", Axis::Row, vec![weighted("a", 1.0), weighted("b", 1.0)]);
+        assert!(resize_in(&mut n, "a", Axis::Row, Share::Fraction(0.5), &measured(&[("a", 100.0)])).is_err());
+        assert!(resize_in(&mut n, "zz", Axis::Row, Share::Fraction(0.5), &measured(&[])).is_err());
+        let mut column = Node::container("tab", Axis::Column, vec![weighted("a", 1.0), weighted("b", 1.0)]);
+        column.resizable = Some(false);
+        let px = [("a", 100.0), ("b", 100.0)];
+        assert!(resize_in(&mut column, "a", Axis::Column, Share::Minimum, &measured(&px)).is_err());
+        // No row holds a pane whose only container is a column.
+        assert!(resize_in(&mut column, "a", Axis::Row, Share::Fraction(0.5), &measured(&px)).is_err());
     }
 }

@@ -3,10 +3,22 @@
 //! how they're split. Plus which pane has focus and agent attention (done vs
 //! seen) with Herdr's rollup. Pure data; the window drives it.
 
-use crate::layout::{Axis, Content, Node};
+use crate::layout::{Axis, Content, Node, Share};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, HashMap};
+
+/// What the last `pane.resize` in a tab replaced. Kept in memory only, and
+/// valid while the tab's arrangement still is `after`: any other change (a
+/// split, a close, a move, a dragged divider) makes the next call start over.
+#[derive(Clone, Debug)]
+pub struct Resize {
+    pub pane: String,
+    /// The arguments of the call, so a different call starts over too.
+    pub key: String,
+    pub before: Node,
+    pub after: Node,
+}
 
 /// A named piece of work in a space: its terminals and how they're split.
 #[derive(Clone, Debug)]
@@ -22,6 +34,8 @@ pub struct Tab {
     /// Put away (ms since the epoch): out of the lists, still running. Comes
     /// back when it's shown or one of its agents needs the person.
     pub settled: Option<u64>,
+    /// What the last `pane.resize` replaced; repeating it restores those sizes.
+    pub resize: Option<Resize>,
     /// Fields of its document entry this build doesn't read (a newer build's),
     /// written back as they were.
     pub rest: serde_json::Map<String, serde_json::Value>,
@@ -121,8 +135,35 @@ impl Tab {
             root: Node::container(id, Axis::Row, vec![pane]),
             zoomed: None,
             settled: None,
+            resize: None,
             rest: Default::default(),
         }
+    }
+
+    /// `pane.resize`: gives `pane` a share of its row's width and/or its column's
+    /// height. Repeating the same call on the same pane, with the arrangement
+    /// unchanged, puts back the sizes from before the first one. `px` measures a
+    /// node's size along an axis on screen.
+    pub fn resize_pane(&mut self, pane: &str, width: Option<f32>, height: Option<Share>, px: &dyn Fn(&str, Axis) -> Option<f32>) -> Result<(), String> {
+        if self.root.find(pane).is_none_or(|n| !n.is_pane()) {
+            return Err(format!("no pane {pane:?} in this tab"));
+        }
+        let key = format!("{width:?}/{height:?}");
+        if self.resize.as_ref().is_some_and(|r| r.pane == pane && r.key == key && r.after == self.root) {
+            let r = self.resize.take().expect("checked above");
+            self.root = r.before;
+            return Ok(());
+        }
+        let mut root = self.root.clone();
+        if let Some(f) = width {
+            crate::layout::resize_in(&mut root, pane, Axis::Row, Share::Fraction(f), px)?;
+        }
+        if let Some(share) = height {
+            crate::layout::resize_in(&mut root, pane, Axis::Column, share, px)?;
+        }
+        let before = std::mem::replace(&mut self.root, root.clone());
+        self.resize = Some(Resize { pane: pane.to_owned(), key, before, after: root });
+        Ok(())
     }
 
     /// Focuses a pane and remembers the one it leaves. A zoomed tab shows the
@@ -964,5 +1005,95 @@ mod tests {
         assert_eq!(m.active.as_deref(), Some("p1"));
         assert_eq!(m.focused_pane().as_deref(), Some("x1"));
         assert_eq!(m.active_tab().map(|c| addresses(c.shown())).unwrap_or_default(), ["t1"]);
+    }
+
+    /// A tab whose row holds three panes, a/b/c, each one share wide (px 300 each).
+    fn three_in_a_row() -> Tab {
+        let mut tab = Tab::new("tab", "t", "a", "addr-a");
+        tab.root = Node::container("tab", Axis::Row, ["a", "b", "c"].into_iter().map(|id| Node::block(id, Content::Terminal { terminal: format!("t-{id}") })).collect());
+        tab
+    }
+
+    fn px_of(id: &str, _: Axis) -> Option<f32> {
+        ["a", "b", "c"].contains(&id).then_some(300.0)
+    }
+
+    fn weight(tab: &Tab, id: &str) -> f32 {
+        match tab.root.find(id).and_then(|n| n.size) {
+            Some(crate::layout::Size::Weight { weight }) => weight,
+            _ => 1.0,
+        }
+    }
+
+    #[test]
+    fn repeating_a_resize_puts_back_the_sizes_from_before_it() {
+        let mut tab = three_in_a_row();
+        let before = tab.root.clone();
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        assert_ne!(tab.root, before);
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        assert_eq!(tab.root, before);
+        assert!(tab.resize.is_none());
+        // Once put back, the next call resizes again.
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        assert!((weight(&tab, "b") / (weight(&tab, "a") + weight(&tab, "b") + weight(&tab, "c")) - 0.6).abs() < 1e-3);
+    }
+
+    #[test]
+    fn a_different_pane_or_arguments_start_over_instead_of_restoring() {
+        let mut tab = three_in_a_row();
+        let before = tab.root.clone();
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        let after_b = tab.root.clone();
+        // Another pane: a new resize from the current sizes, the memory moves to it.
+        tab.resize_pane("c", Some(0.5), None, &px_of).unwrap();
+        assert_eq!(tab.resize.as_ref().map(|r| r.pane.as_str()), Some("c"));
+        assert_eq!(tab.resize.as_ref().map(|r| &r.before), Some(&after_b));
+        // Same pane, other arguments: not a toggle back to c's `before`, it resizes again.
+        let after_c = tab.root.clone();
+        tab.resize_pane("c", Some(0.4), None, &px_of).unwrap();
+        assert_ne!(tab.root, after_c);
+        assert_eq!(tab.resize.as_ref().map(|r| r.key.as_str()), Some("Some(0.4)/None"));
+        assert_eq!(tab.resize.as_ref().map(|r| &r.before), Some(&after_c));
+        assert_ne!(before, after_c);
+    }
+
+    #[test]
+    fn any_change_to_the_arrangement_makes_the_next_call_start_over() {
+        let mut tab = three_in_a_row();
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        // A divider dragged (a size changed by hand) between the two calls.
+        tab.root.find_mut("c").unwrap().size = Some(crate::layout::Size::Weight { weight: 5.0 });
+        let dragged = tab.root.clone();
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        assert_ne!(tab.root, dragged, "restored to a state from before the drag");
+        assert_eq!(tab.resize.as_ref().map(|r| &r.before), Some(&dragged));
+    }
+
+    #[test]
+    fn closing_a_pane_makes_the_next_call_start_over() {
+        let mut tab = three_in_a_row();
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        tab.root.remove("c");
+        let closed = tab.root.clone();
+        let px_ab = |id: &str, _: Axis| ["a", "b"].contains(&id).then_some(500.0);
+        tab.resize_pane("b", Some(0.6), None, &px_ab).unwrap();
+        assert_eq!(tab.resize.as_ref().map(|r| &r.before), Some(&closed));
+        assert!(tab.root.find("c").is_none());
+    }
+
+    #[test]
+    fn a_refused_resize_leaves_the_tab_and_its_memory_alone() {
+        let mut tab = three_in_a_row();
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        let (root, memory) = (tab.root.clone(), tab.resize.clone());
+        assert!(tab.resize_pane("zz", Some(0.6), None, &px_of).is_err());
+        // c is not measured on screen; it is not a repeat of b's call, so nothing restores.
+        assert!(tab.resize_pane("c", Some(0.6), None, &|_, _| None).is_err());
+        assert_eq!(tab.root, root);
+        assert_eq!(tab.resize.as_ref().map(|r| &r.before), memory.as_ref().map(|r| &r.before));
+        // Still a restore: the memory survived the refusals.
+        tab.resize_pane("b", Some(0.6), None, &px_of).unwrap();
+        assert_eq!(tab.root, memory.unwrap().before);
     }
 }
