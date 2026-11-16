@@ -267,7 +267,7 @@ Swap a pane (default: the focused one) with its neighbor in a direction, or with
 
 ## `pane.resize`
 
-Give a pane a share of its row's width (width: 0 to 1) and/or of its column's height (height: 0 to 1, or "max": the other panes of the column down to their minimum). Repeating the same call on the same pane restores the sizes from before it, until the tab's layout changes.
+Give a pane a share of its row's width (width: 0 to 1) and/or of its column's height (height: 0 to 1, or "max": the other panes of the column down to their minimum). A size the pane has no row or column for is skipped; the call fails only when nothing is left to do. Repeating the same call on the same pane restores the sizes from before it, until the tab's layout changes.
 
 | Argument | Required |
 |---|---|

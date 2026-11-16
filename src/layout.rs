@@ -884,6 +884,13 @@ pub fn resize_plan(siblings: &[Sibling], target: &str, share: Share) -> Result<V
 /// `pane.resize` on a tree: the nearest container along `axis` around `pane`
 /// gives its child on the way to `pane` `share` of its space. `px` measures a
 /// child's size along an axis on screen (None: not drawn).
+/// Whether some row (`Axis::Row`) or column (`Axis::Column`) holds `pane`, at
+/// any depth: whether `pane.resize` has something to resize along that axis.
+pub fn held_along(root: &Node, pane: &str, axis: Axis) -> bool {
+    root.path_to(pane)
+        .is_some_and(|path| path[..path.len() - 1].iter().any(|id| root.find(id).and_then(Node::axis) == Some(axis)))
+}
+
 pub fn resize_in(root: &mut Node, pane: &str, axis: Axis, share: Share, px: &dyn Fn(&str, Axis) -> Option<f32>) -> Result<(), String> {
     let path = root.path_to(pane).ok_or_else(|| format!("no pane {pane:?} in this tab"))?;
     let depth = (0..path.len() - 1)

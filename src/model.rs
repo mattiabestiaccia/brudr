@@ -154,6 +154,14 @@ impl Tab {
             self.root = r.before;
             return Ok(());
         }
+        // An axis with no row or column around the pane (a pane alone in its
+        // column, say) is skipped; the call fails only when nothing is left.
+        let asked = width.is_some() || height.is_some();
+        let width = width.filter(|_| crate::layout::held_along(&self.root, pane, Axis::Row));
+        let height = height.filter(|_| crate::layout::held_along(&self.root, pane, Axis::Column));
+        if asked && width.is_none() && height.is_none() {
+            return Err(format!("no row or column holds {pane:?} along the asked sizes"));
+        }
         let mut root = self.root.clone();
         if let Some(f) = width {
             crate::layout::resize_in(&mut root, pane, Axis::Row, Share::Fraction(f), px)?;
@@ -1080,6 +1088,39 @@ mod tests {
         tab.resize_pane("b", Some(0.6), None, &px_ab).unwrap();
         assert_eq!(tab.resize.as_ref().map(|r| &r.before), Some(&closed));
         assert!(tab.root.find("c").is_none());
+    }
+
+    #[test]
+    fn an_axis_without_a_row_or_column_is_skipped_and_the_other_is_done() {
+        // root row [a, col [b, c]]: a is alone in its column, b and c share one.
+        let mut tab = Tab::new("tab", "t", "a", "addr-a");
+        let term = |id: &str| Node::block(id, Content::Terminal { terminal: format!("t-{id}") });
+        let col = Node::container("col", Axis::Column, vec![term("b"), term("c")]);
+        tab.root = Node::container("tab", Axis::Row, vec![term("a"), col]);
+        let px = |id: &str, _: Axis| ["a", "col", "b", "c"].contains(&id).then_some(400.0);
+        let before = tab.root.clone();
+        // a: width done, height (no column) skipped.
+        tab.resize_pane("a", Some(0.6), Some(Share::Minimum), &px).unwrap();
+        assert_ne!(tab.root, before);
+        assert_eq!(tab.root.find("b").and_then(|n| n.size), before.find("b").and_then(|n| n.size));
+        // Repeating restores, as for a full call.
+        tab.resize_pane("a", Some(0.6), Some(Share::Minimum), &px).unwrap();
+        assert_eq!(tab.root, before);
+    }
+
+    #[test]
+    fn a_resize_with_nothing_to_do_on_any_asked_axis_is_refused() {
+        // A tab with one column only: no row holds b.
+        let mut tab = Tab::new("tab", "t", "b", "addr-b");
+        let term = |id: &str| Node::block(id, Content::Terminal { terminal: format!("t-{id}") });
+        tab.root = Node::container("tab", Axis::Column, vec![term("b"), term("c")]);
+        let px = |id: &str, _: Axis| ["b", "c"].contains(&id).then_some(400.0);
+        let before = tab.root.clone();
+        assert!(tab.resize_pane("b", Some(0.6), None, &px).is_err());
+        assert_eq!(tab.root, before);
+        // The height alone still works there.
+        tab.resize_pane("b", None, Some(Share::Minimum), &px).unwrap();
+        assert_ne!(tab.root, before);
     }
 
     #[test]

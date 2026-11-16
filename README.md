@@ -83,7 +83,7 @@ Ctrl+Shift+P shows every command and its key (Cmd+Shift+P on macOS). Change any 
 
 ## Resize a pane
 
-`pane.resize` gives the focused pane, or `pane`, a share of its nearest row's width (`width`, 0 to 1) and of its nearest column's height (`height`, 0 to 1, or `"max"`). Shares are measured on the shown tab, so only its panes can be resized. `"max"` shrinks the column's other panes to their minimum: 24 px, or their `min` when that is larger. Give one or both.
+`pane.resize` gives the focused pane, or `pane`, a share of its nearest row's width (`width`, 0 to 1) and of its nearest column's height (`height`, 0 to 1, or `"max"`). Shares are measured on the shown tab, so only its panes can be resized. `"max"` shrinks the column's other panes to their minimum: 24 px, or their `min` when that is larger. Give one or both. A size the pane has no row or column for is skipped (a pane alone in its column gets only the width); the call fails only when nothing is left to do.
 
 ```sh
 herdr-app do pane.resize '{"width":0.6,"height":"max"}'

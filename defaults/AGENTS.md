@@ -586,7 +586,8 @@ The main ones:
   A swap moves panes, not focus: the focused pane stays focused in its new place.
   `pane.resize` gives `pane` (default: the focused one) `width` (0 to 1) of its nearest row and
   `height` (0 to 1, or `"max"`: the other panes of its nearest column down to their minimum) of its
-  nearest column, on the shown tab; give one or both. Repeating the same call on the same pane while
+  nearest column, on the shown tab; give one or both. A size with no row or column around the pane
+  is skipped; the call fails only when nothing is left to do. Repeating the same call on the same pane while
   the tab's layout is unchanged puts the sizes from before back; a restart forgets them.
   `pane.focus {terminal}` prefers the first visible layout terminal block showing that
   address, then its model pane. Clicking a terminal block focuses it too.

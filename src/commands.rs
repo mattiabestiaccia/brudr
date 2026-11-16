@@ -60,7 +60,7 @@ pub const COMMANDS: &[Command] = &[
     cmd("pane.focus", &[opt("pane"), opt("terminal")], "Focus a pane (or the pane showing a terminal)."),
     cmd("pane.go", &[req("direction")], "Focus the pane or focusable mod to the \"left\", \"right\", \"up\" or \"down\"."),
     cmd("pane.swap", &[opt("direction"), opt("pane"), opt("target")], "Swap a pane (default: the focused one) with its neighbor in a direction, or with another pane of its tab (target). Give exactly one of direction or target."),
-    cmd("pane.resize", &[opt("pane"), opt("width"), opt("height")], "Give a pane a share of its row's width (width: 0 to 1) and/or of its column's height (height: 0 to 1, or \"max\": the other panes of the column down to their minimum). Repeating the same call on the same pane restores the sizes from before it, until the tab's layout changes."),
+    cmd("pane.resize", &[opt("pane"), opt("width"), opt("height")], "Give a pane a share of its row's width (width: 0 to 1) and/or of its column's height (height: 0 to 1, or \"max\": the other panes of the column down to their minimum). A size the pane has no row or column for is skipped; the call fails only when nothing is left to do. Repeating the same call on the same pane restores the sizes from before it, until the tab's layout changes."),
     cmd("terminal.peek", &[req("terminal")], "Peek at a running terminal over the tab, with keep-as-tab and close controls."),
     cmd("terminal.show", &[opt("terminal"), opt("pane")], "Show a terminal in a pane for now, in place of its own (no terminal: back)."),
     cmd("terminal.copy", &[], "Copy the focused terminal's selection. With nothing selected, that key goes to the program."),
