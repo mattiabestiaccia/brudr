@@ -15,7 +15,8 @@ Remote `origin` = herdrdev/herdr-app (solo lettura), `fork` =
 mattiabestiaccia/herdr-app (backup del ramo). Il ramo pilota
 `pilot/desktop-transparency` resta come storia del prototipo.
 
-- **App**: `~/Applications/Herdr Personal.app` (bundle `personal.herdr.app`),
+- **App**: `~/Applications/brudr.app` (bundle `personal.herdr.app`; fino al
+  2026-11-16 si chiamava «Herdr Personal», il bundle è rimasto per i permessi),
   accanto a `/Applications/Herdr.app`. Stessa home `~/.config/herdr-app` e
   stesso core: usarne una alla volta. Dopo un periodo di prova si può
   sostituire l'ufficiale.

@@ -91,7 +91,7 @@ herdr-app do pane.resize '{"width":0.6,"height":"max"}'
 
 Repeating the same call on the same pane puts back the sizes from before the first call. Any change to the tab's arrangement (a split, a close, a move, a dragged divider) makes the next call start over. That memory lives in the app only, so a restart forgets it; the new sizes are saved like a divider drag.
 
-`herdr-app do` talks to the window of the app home it finds: `HERDR_APP_HOME` when it is set, else `~/.config/herdr-app`. To reach the Herdr Personal window, set `HERDR_APP_HOME` to that build's app home before running `herdr-app do`.
+`herdr-app do` talks to the window of the app home it finds: `HERDR_APP_HOME` when it is set, else `~/.config/herdr-app`. To reach the brudr window (the personal build), set `HERDR_APP_HOME` to that build's app home before running `herdr-app do`.
 
 [Layouts and mods](docs/mods.md) · [Commands](docs/commands.md)
 
