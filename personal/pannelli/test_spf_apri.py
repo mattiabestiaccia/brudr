@@ -8,21 +8,20 @@ import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
-from urllib.parse import parse_qs, urlparse
 
 OPENER = runpy.run_path(str(Path(__file__).with_name("spf-apri")))
 
 
 class Opener(unittest.TestCase):
     @patch("subprocess.run")
-    def test_markdown_path_is_uri_encoded(self, run):
-        name = "/cartella con spazi/È $() #?&.MD"
-        OPENER["main"]([name])
-        command, = run.call_args.args
-        self.assertEqual(command[:3], ["/usr/bin/open", "-a", "Obsidian"])
-        url = urlparse(command[3])
-        self.assertEqual(url.netloc, "open")
-        self.assertEqual(parse_qs(url.query), {"path": [name]})
+    def test_markdown_opens_in_obsidian_by_path_also_outside_a_vault(self, run):
+        for name in ("/cartella con spazi/È $() #?&.MD", "/tmp/fuori-vault/nota.md", "/tmp/-trattino.markdown"):
+            with self.subTest(name=name):
+                OPENER["main"]([name])
+                command, = run.call_args.args
+                # One argv item, no URI: obsidian://open?path= answers "Vault not found" outside a vault.
+                self.assertEqual(command, ["/usr/bin/open", "-a", "Obsidian", name])
+                self.assertNotIn("obsidian://", " ".join(command))
 
     @patch("subprocess.run")
     def test_code_and_unknown_files_are_never_shell_code(self, run):

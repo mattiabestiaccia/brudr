@@ -5,7 +5,6 @@ from pathlib import Path
 import stat
 import subprocess
 import sys
-from urllib.parse import quote
 
 MARKDOWN = frozenset("md markdown mdown mkd mkdn".split())
 CODE = frozenset("""
@@ -84,8 +83,9 @@ def main(argv):
     # Same extension rule as Go's filepath.Ext, including dotfiles like .env.
     ext = path.name.rpartition(".")[2].lower() if "." in path.name else ""
     if ext in MARKDOWN:
-        uri = "obsidian://open?path=" + quote(str(path), safe="")
-        command = ["/usr/bin/open", "-a", "Obsidian", uri]
+        # Obsidian 1.14.4 opens any Markdown file, also outside a vault, from Open with
+        # (changelog of 5 October 2026). obsidian://open?path= still needs a vault.
+        command = ["/usr/bin/open", "-a", "Obsidian", str(path)]
     elif ext in CODE:
         command = ["/usr/bin/open", "-a", "Zed", str(path)]
     elif ext in DATA:
