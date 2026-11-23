@@ -29,6 +29,8 @@ TRASPARENTE = os.path.join(REPO, "personal", "transparency", "herdr-transparent.
 SEGRETO = "FINTO_TOKEN_0000_non_vero"
 PRIVATI = {"spf", "nvim", "privato"}
 TIPI = ["spf", "nvim", "hunk", "quota", "privato"]
+FIGLI = ["files", "neovim", "changes", "quota", "privato", "browser"]
+WEB = {"web": {"url": "https://example.com/"}}
 
 
 class Cartella(unittest.TestCase):
@@ -300,13 +302,15 @@ class Layout(unittest.TestCase):
                 if f:
                     return f
         body = trova(d, "panel-body")
-        self.assertNotIn("header", body, "the panel buttons are in the tab bar, not over the panel")
         schede = trova(d, "tabs")
+        assert body is not None and schede is not None
+        self.assertNotIn("header", body, "the panel buttons are in the tab bar, not over the panel")
         self.assertEqual(schede["content"], {"mod": "pannelli"})
         self.assertNotIn('"mod": "tabs"', json.dumps(d))
         figli = {c["id"]: c for c in body["children"]}
-        self.assertEqual(list(figli), ["files", "neovim", "changes", "quota", "privato"])
-        self.assertEqual({k: v["content"]["terminal"] for k, v in figli.items()},
+        self.assertEqual(list(figli), FIGLI)
+        self.assertEqual(figli["browser"]["content"], WEB)
+        self.assertEqual({k: v["content"]["terminal"] for k, v in figli.items() if k != "browser"},
                          {"files": "brudr-spf", "neovim": "brudr-nvim", "changes": "brudr-hunk",
                           "quota": "brudr-quota", "privato": "brudr-privato"})
         self.assertEqual([k for k, v in figli.items() if "background" in v], [], "Private has the panel's gray too")
@@ -374,6 +378,10 @@ fn main() {
     for (id, name) in [("files", "brudr-spf"), ("neovim", "brudr-nvim"), ("changes", "brudr-hunk"), ("quota", "brudr-quota"), ("privato", "brudr-privato")] {
         assert_eq!(n.find(id).and_then(layout::Node::terminal), Some(name), "{id}");
     }
+    let browser = n.find("browser").unwrap();
+    assert!(browser.terminal().is_none());
+    assert!(matches!(browser.content(), Some(layout::Content::Web { web }) if web.url == "https://example.com/"));
+    assert!(shown.select("panel-body", "browser"));
     let v = serde_json::to_value(n.find("privato").unwrap()).unwrap();
     assert!(v.get("background").is_none(), "{v}");
     let tabs = serde_json::to_value(n.find("tabs").unwrap()).unwrap();
@@ -432,8 +440,7 @@ class ModPannelli(unittest.TestCase):
 
     def test_stessi_pannelli_della_mod_del_layout_e_del_programma(self):
         mod = re.findall(r'\{ child: "(\w+)", tipo: "(\w+)", nome: "[^"]+", privato: (true|false)', self.blocchi)
-        self.assertEqual([(c, t) for c, t, _ in mod],
-                         [("files", "spf"), ("neovim", "nvim"), ("changes", "hunk"), ("quota", "quota"), ("privato", "privato")])
+        self.assertEqual([(c, t) for c, t, _ in mod], list(zip(FIGLI, [*TIPI, "web"])))
         self.assertEqual({t for _, t, p in mod if p == "true"}, PRIVATI)
         programma = open(PANNELLO).read()
         self.assertIn("spf|nvim|privato) privato=1", programma)
@@ -500,7 +507,7 @@ class ModPannelli(unittest.TestCase):
         r = subprocess.run(["node", PROVA_MOD, MODS, layout], capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
         esiti = json.loads(r.stdout)
-        tutti = ["files", "neovim", "changes", "quota", "privato"]
+        tutti = FIGLI
         # brudr saves the layout before the mod looks, or not yet: same end.
         for caso in ("salvaPrima", "senzaSalvare", "fileSenzaNeovim"):
             prima, dopo = esiti[caso]["prima"], esiti[caso]["dopo"]
@@ -522,6 +529,15 @@ class ModPannelli(unittest.TestCase):
             self.assertEqual((dopo["attivo"], dopo["visibile"]), ("neovim", True), caso)
             self.assertTrue(dopo["nuovoTerminale"], caso)
             self.assertEqual(dopo["nvim"]["labels"], {"brudr.panel": "nvim", "brudr.private": "1"}, caso)
+        browser = esiti["browser"]
+        self.assertEqual(browser["pulsante"], ["Browser"], "no privacy dot")
+        self.assertEqual((browser["aperto"]["attivo"], browser["aperto"]["visibile"]), ("browser", True))
+        self.assertFalse(browser["chiuso"]["visibile"])
+        self.assertEqual((browser["ritorno"]["attivo"], browser["ritorno"]["visibile"]), ("browser", True))
+        self.assertEqual(browser["memorizzato"], {"sp1": "browser"})
+        self.assertEqual(browser["chiamatePrimaDiNeovim"], 0, "browser needs no core")
+        self.assertTrue(all("brudr-web" not in args for args in browser["chiamate"]))
+        self.assertEqual(browser["ritorno"]["falliti"], [])
 
     def test_niente_layout_switch_per_rimettere_i_blocchi(self):
         """layout.switch saves before it loads: it would write the file without the block."""

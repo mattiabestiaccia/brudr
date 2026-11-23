@@ -2,12 +2,11 @@
 // the side panels' terminals.
 //
 // The bar is a copy of Herdr's `tabs` mod (defaults/mods/tabs, not changed),
-// with five panel buttons in place of Files and Changes: Superfile, Neovim,
-// hunk, Quota, Private (23 November 2026). Like `tabs`, it remembers
-// the shown panel per space, now for all five.
+// with six panel buttons in place of Files and Changes. Like `tabs`, it remembers
+// the shown panel per space, including the native Browser.
 //
-// Each child of the "panel-body" stack is a layout block { terminal: "brudr-<tipo>" },
-// by name, so the layout never changes when a terminal gets a new address. This mod:
+// Browser is a regular web block with no core terminal. The other children of
+// "panel-body" are terminal blocks by name, so a new address needs no layout change. This mod:
 // - creates a panel's terminal the first time the panel is shown (D5), and again
 //   after a restart, with `hc run --name brudr-<tipo>`; private panels carry the
 //   core label brudr.private=1 from the start, which the agents' terminal reader refuses to read;
@@ -104,7 +103,7 @@ export default class Pannelli extends View {
 
   // The panel's live terminal, or a new one. Resolves to true when one was created.
   async garantisci(p) {
-    if (this.creando.has(p.tipo)) return false;
+    if (p.web || this.creando.has(p.tipo)) return false;
     const presente = record(p);
     if (presente) return this.controlla(presente, p);
     this.creando.add(p.tipo);
@@ -202,6 +201,7 @@ export default class Pannelli extends View {
     cx.spawn(async (cx) => {
       try {
         for (const p of mancanti) {
+          if (p.web) continue;
           // A finished record of ours would keep the name and end the new block.
           const g = await hc(["get", "--json", nomeDi(p)]).catch(() => null);
           let rec = null;
@@ -251,14 +251,14 @@ export default class Pannelli extends View {
       if (p && presenti.has(p.child)) {
         this.daMostrare = null;
         cx.spawn(async (cx) => {
-          this.mostra(cx, p, true);
+          this.mostra(cx, p, !p.web);
           cx.notify();
         });
       }
     }
     // render runs on every data change: work only when the shown panel, its
     // terminal or (for hunk) the folder changes.
-    if (visibile) {
+    if (visibile && !attuale.web) {
       const rec = record(attuale);
       const chiave = `${attuale.child}|${rec?.address ?? "-"}|${attuale.segue ? cartella() ?? "" : ""}`;
       if (chiave !== this.ultima) {

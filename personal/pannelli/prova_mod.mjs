@@ -38,6 +38,7 @@ class Brudr {
   constructor(testo) {
     this.file = new Map([[LAYOUT, testo]]);
     this.core = new Map();
+    this.chiamateCore = [];
     this.n = 0;
     this.falliti = [];
     this.avvisi = [];
@@ -134,6 +135,7 @@ class Brudr {
 
   // ---- core
   hc(args) {
+    this.chiamateCore.push(args);
     const [verbo, ...resto] = args;
     const nome = resto[resto.length - 1];
     if (verbo === "get") {
@@ -346,6 +348,25 @@ async function fileSenzaNeovim() {
   return { prima, dopo: { ...esito(b), nuovoTerminale: Boolean(b.core.get("brudr-nvim")) } };
 }
 
-const out = { salvaPrima: await scenario(true), senzaSalvare: await scenario(false), fileSenzaNeovim: await fileSenzaNeovim() };
+async function browser() {
+  globalThis.MEMORIA = new Map();
+  const b = new Brudr(fs.readFileSync(layoutFile, "utf8"));
+  globalThis.BRUDR = b;
+  const v = new Pannelli();
+  v.init();
+  await quieto(b, v);
+  const pulsante = trovaElemento(b.albero, "pannello-browser").figli;
+  await clic(b, v, "browser");
+  const aperto = esito(b);
+  await clic(b, v, "browser");
+  const chiuso = esito(b);
+  const chiamatePrimaDiNeovim = b.chiamateCore.length;
+  await clic(b, v, "neovim");
+  await clic(b, v, "browser");
+  return { pulsante, aperto, chiuso, ritorno: esito(b), chiamatePrimaDiNeovim, chiamate: b.chiamateCore,
+    memorizzato: JSON.parse(MEMORIA.get("panels")) };
+}
+
+const out = { salvaPrima: await scenario(true), senzaSalvare: await scenario(false), fileSenzaNeovim: await fileSenzaNeovim(), browser: await browser() };
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(JSON.stringify(out, null, 1));

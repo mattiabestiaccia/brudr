@@ -1,4 +1,4 @@
-// blocchi: the five side panels and their blocks in the brudr-pannelli layout.
+// blocchi: the side panels and their blocks in the brudr-pannelli layout.
 // No herdr import here, so the tests load it with plain node.
 //
 // Why the mod writes the layout file: when a panel's terminal ends (hc kill,
@@ -15,6 +15,7 @@ export const PANNELLI = [
   { child: "changes", tipo: "hunk", nome: "Hunk", privato: false, segue: true },
   { child: "quota", tipo: "quota", nome: "Quota", privato: false },
   { child: "privato", tipo: "privato", nome: "Private", privato: true },
+  { child: "browser", tipo: "web", nome: "Browser", privato: false, web: { url: "https://example.com/" } },
 ];
 
 export const STACK = "panel-body";
@@ -23,7 +24,8 @@ export const nomeDi = (p) => `brudr-${p.tipo}`;
 
 // The block as crea-layout writes it (same keys, same order).
 export function blocco(p) {
-  return { id: p.child, type: "block", content: { terminal: nomeDi(p) } };
+  const content = p.web ? { web: p.web } : { terminal: nomeDi(p) };
+  return { id: p.child, type: "block", content };
 }
 
 export function trova(n, id) {

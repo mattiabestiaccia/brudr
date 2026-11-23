@@ -4,11 +4,10 @@
 Usage: crea-layout <herdr-transparent.json> <brudr-pannelli.json>
 
 Same window as the source (look, transparency, sidebar, status), with two changes:
-- the right panel's stack "panel-body": five terminal blocks by name, without a
-  header; every panel, Private too, has the panel's own background, the gray of
-  the transparent layout (23 November 2026);
-- the tab bar block "tabs" runs the `pannelli` mod instead of `tabs`: the tab bar
-  with the five panel buttons in place of Files and Changes.
+- the right panel's stack "panel-body": five named terminal blocks and one
+  native browser block, without a header, on the panel's own gray background;
+- the tab bar block "tabs" runs the `pannelli` mod instead of `tabs`, putting
+  the side panel buttons in place of Files and Changes.
 The ids "files" and "changes" stay. The source file is only read.
 """
 import copy
@@ -26,12 +25,17 @@ FIGLI = [
 ]
 
 
+def browser():
+    return {"id": "browser", "type": "block", "content": {"web": {"url": "https://example.com/"}}}
+
+
 def stack():
+    terminali = [{"id": id_, "type": "block", "content": {"terminal": nome}} for id_, nome in FIGLI]
     return {
         "id": "panel-body",
         "type": "stack",
         "active": "files",
-        "children": [{"id": id_, "type": "block", "content": {"terminal": nome}} for id_, nome in FIGLI],
+        "children": [*terminali, browser()],
     }
 
 
