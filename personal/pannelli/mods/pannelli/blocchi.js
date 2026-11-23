@@ -12,7 +12,7 @@
 export const PANNELLI = [
   { child: "files", tipo: "spf", nome: "Superfile", privato: true },
   { child: "neovim", tipo: "nvim", nome: "Neovim", privato: true },
-  { child: "changes", tipo: "hunk", nome: "hunk", privato: false, segue: true },
+  { child: "changes", tipo: "hunk", nome: "Hunk", privato: false, segue: true },
   { child: "quota", tipo: "quota", nome: "Quota", privato: false },
   { child: "privato", tipo: "privato", nome: "Private", privato: true },
 ];

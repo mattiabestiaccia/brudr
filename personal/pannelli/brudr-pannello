@@ -118,11 +118,11 @@ PARTENZA=$PWD
 
 spf_config() { # the user's Superfile config with the panel's keys in place of his
   local out="$priv/spf.toml"
-  local chiavi='sidebar_width|default_open_file_preview|show_image_preview|auto_check_update|zoxide_support|cd_on_quit|editor|dir_editor|ignore_missing_fields'
+  local chiavi='default_open_file_preview|show_image_preview|show_panel_footer_info|auto_check_update|cd_on_quit|editor|dir_editor|ignore_missing_fields'
   {
     printf '%s\n' '# brudr-pannello: the panel keys, then the rest of the user config' \
-      'sidebar_width = 0' 'default_open_file_preview = false' 'show_image_preview = false' \
-      'auto_check_update = false' 'zoxide_support = false' 'cd_on_quit = false' \
+      'default_open_file_preview = false' 'show_image_preview = false' 'show_panel_footer_info = true' \
+      'auto_check_update = false' 'cd_on_quit = false' \
       'editor = ""' 'dir_editor = ""' 'ignore_missing_fields = true'
     [ -f "$SPF_BASE" ] && grep -Ev "^[[:space:]]*($chiavi)[[:space:]]*=" "$SPF_BASE"
   } > "$out"

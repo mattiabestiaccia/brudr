@@ -201,13 +201,15 @@ class ConfigurazioneSpf(Cartella):
         base = ('editor = "code"\nsidebar_width = 20\ndefault_open_file_preview = true\nshow_image_preview = true\n'
                 'theme = "poimandres"\nzoxide_support = true\n[open_with]\ntoml = "nvim"\n')
         testo = self.config(base)
-        for chiave, valore in (("sidebar_width", "0"), ("default_open_file_preview", "false"),
-                               ("show_image_preview", "false"), ("zoxide_support", "false"), ("editor", '""'),
+        for chiave, valore in (("default_open_file_preview", "false"),
+                               ("show_image_preview", "false"), ("show_panel_footer_info", "true"), ("editor", '""'),
                                ("auto_check_update", "false"), ("ignore_missing_fields", "true")):
             righe = [r for r in testo.splitlines() if re.match(r"\s*%s\s*=" % chiave, r)]
             self.assertEqual(righe, ["%s = %s" % (chiave, valore)], chiave)
         self.assertIn('theme = "poimandres"', testo)
-        self.assertLess(testo.index("sidebar_width = 0"), testo.index("[open_with]"), "panel keys must be top level")
+        self.assertIn("sidebar_width = 20", testo)
+        self.assertIn("zoxide_support = true", testo)
+        self.assertLess(testo.index("default_open_file_preview = false"), testo.index("[open_with]"), "panel keys must be top level")
         self.assertIn('toml = "nvim"', testo)
 
     def test_senza_config_dell_utente(self):
@@ -215,7 +217,9 @@ class ConfigurazioneSpf(Cartella):
         os.remove(os.path.join(self.tmp, "spf-base.toml"))
         c, out, _ = self.pannello("spf")
         self.assertEqual(c, 0)
-        self.assertIn("spf.toml| sidebar_width = 0", out)
+        self.assertNotIn("spf.toml| sidebar_width =", out)
+        self.assertIn("spf.toml| default_open_file_preview = false", out)
+        self.assertIn("spf.toml| show_panel_footer_info = true", out)
         self.assertIn("ignore_missing_fields = true", testo)
 
 
@@ -406,6 +410,12 @@ class ModPannelli(unittest.TestCase):
             shutil.copy(f, p)
             r = subprocess.run(["node", "--check", p], capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_etichetta_hunk_maiuscola_senza_cambiare_il_tipo(self):
+        pannelli = node('import { PANNELLI, nomeDi } from %s; console.log(JSON.stringify(PANNELLI.map(p => [p.nome, nomeDi(p)])))' %
+                        json.dumps(pathlib_url(BLOCCHI)))
+        changes = next(p for p in pannelli if p[1] == "brudr-hunk")
+        self.assertEqual(changes, ["Hunk", "brudr-hunk"])
 
     def test_stessi_pannelli_della_mod_del_layout_e_del_programma(self):
         mod = re.findall(r'\{ child: "(\w+)", tipo: "(\w+)", nome: "[^"]+", privato: (true|false)', self.blocchi)
