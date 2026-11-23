@@ -433,7 +433,8 @@ class ModPannelli(unittest.TestCase):
         """The blocks the mod puts back are the ones crea-layout writes."""
         mod = node('import { PANNELLI, blocco } from %s; console.log(JSON.stringify(PANNELLI.map(blocco)));'
                    % json.dumps(pathlib_url(BLOCCHI)))
-        r = subprocess.run([sys.executable, "-c", "import importlib.machinery as m; c = m.SourceFileLoader('c', %r).load_module();"
+        # -B: no __pycache__ beside crea-layout in the checkout.
+        r = subprocess.run([sys.executable, "-B", "-c", "import importlib.machinery as m; c = m.SourceFileLoader('c', %r).load_module();"
                             "import json; print(json.dumps(c.stack()['children']))" % CREA], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(mod, json.loads(r.stdout))
