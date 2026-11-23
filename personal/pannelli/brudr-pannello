@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+# brudr-pannello <tipo>: the program of one side panel of brudr (mod `pannelli`).
+#
+# The mod starts it once per panel, in a terminal with a name:
+#   hc run --bg --json --no-parent --rm --name brudr-<tipo> --label brudr.panel=<tipo> \
+#          [--label brudr.private=1] --cwd <folder> -- ~/bin/brudr-pannello <tipo>
+# Types: spf (Superfile), nvim (Neovim), hunk, quota (quota-axi --tui), privato (a shell).
+# Private: spf, nvim, privato. The agents' terminal reader refuses terminals with the brudr.private label.
+#
+# It never ends on its own: brudr drops a layout block whose program exits
+# (src/window.rs, terminal_ended), so q in spf, :q in nvim or exit in the shell
+# start the program again. Ctrl-C between two starts does not end the panel.
+#
+# Private panels leave no copy of what they show:
+# - TMPDIR is a folder of their own, removed when the panel ends;
+# - Neovim runs without swap, undo, shada and backup files; a link named `nvim`
+#   (~/.config/brudr-pannelli/bin/nvim -> this file) comes first in their PATH,
+#   so the editor opened by spf or typed in the private shell is the same;
+# - the shell is `fish --private` (no fish_history); REPL histories are off;
+# - before the panel ends, the screen and scrollback are cleared.
+#
+# hunk follows the space: the mod writes the folder to
+# ~/.config/herdr-app/data/pannelli/hunk.dir; on a change hunk restarts there.
+# Superfile and Neovim stay where they are (D2 and D3).
+#
+# BRUDR_PANNELLO_PROVA=1 prints what would run, once, and exits (tests).
+set -u
+
+PANNELLI_BIN="${BRUDR_PANNELLI_BIN:-$HOME/.config/brudr-pannelli/bin}"
+PANNELLI_TMP="${BRUDR_PANNELLI_TMP:-$HOME/.config/brudr-pannelli/tmp}"
+CARTELLE="${BRUDR_PANNELLI_DATI:-$HOME/.config/herdr-app/data/pannelli}"
+SPF_BASE="${BRUDR_SPF_BASE:-$HOME/Library/Application Support/superfile/config.toml}"
+PROVA="${BRUDR_PANNELLO_PROVA:-}"
+# The core gives programs the login session's environment, not a shell's PATH.
+PATH="$HOME/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"
+
+# Neovim without traces on disk. --cmd runs before the user's config, -c after
+# it (LazyVim turns undofile on); the autocmd covers every buffer opened later.
+NVIM_PRIVATO=(
+  -n -i NONE
+  --cmd 'set noundofile noswapfile nobackup nowritebackup | autocmd BufReadPre,BufNewFile,BufEnter,BufWritePre * setlocal noundofile noswapfile'
+  -c 'set noundofile noswapfile nobackup nowritebackup | lua pcall(function() require("persistence").stop() end)'
+)
+
+esegui() { # the command, or in test mode its words on one line
+  if [ -n "$PROVA" ]; then
+    printf 'esegue:'; printf ' %s' "$@"; printf '\n'
+    return 0
+  fi
+  "$@"
+}
+
+nvim_vero() { # the first nvim in PATH that is not this script
+  local d
+  local IFS=:
+  for d in $PATH; do
+    [ "$d" = "$PANNELLI_BIN" ] && continue
+    if [ -x "$d/nvim" ] && ! [ "$d/nvim" -ef "$0" ]; then
+      printf '%s\n' "$d/nvim"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if [ "$(basename "$0")" = nvim ]; then
+  vero=$(nvim_vero) || { echo "brudr-pannello: nvim not found" >&2; exit 127; }
+  if [ -n "$PROVA" ]; then esegui "$vero" "${NVIM_PRIVATO[@]}" "$@"; exit 0; fi
+  exec "$vero" "${NVIM_PRIVATO[@]}" "$@"
+fi
+
+tipo=${1:-}
+case $tipo in
+  spf|nvim|privato) privato=1 ;;
+  hunk|quota) privato=0 ;;
+  *) echo "usage: brudr-pannello spf|nvim|hunk|quota|privato" >&2; exit 64 ;;
+esac
+
+pulisci_schermo() { printf '\033[3J\033[H\033[2J'; }
+
+if [ $privato = 1 ]; then
+  umask 077
+  mkdir -p "$PANNELLI_TMP" && chmod 700 "$PANNELLI_TMP" || exit 1
+  # Left behind by a panel that was killed hard (SIGKILL skips the EXIT trap).
+  find "$PANNELLI_TMP" -mindepth 1 -maxdepth 1 -name "$tipo.*" -mtime +0 -exec rm -rf {} + 2>/dev/null
+  priv=$(mktemp -d "$PANNELLI_TMP/$tipo.XXXXXX") || exit 1
+  # The final screen is what the core saves for an ended terminal: leave it blank.
+  trap '[ -n "$PROVA" ] || pulisci_schermo; rm -rf "$priv"' EXIT
+  trap 'exit 129' HUP
+  trap 'exit 143' TERM
+  export TMPDIR="$priv/"
+  export BRUDR_PRIVATO=1
+  PATH="$PANNELLI_BIN:$PATH"
+  export BRUDR_PANNELLI_BIN="$PANNELLI_BIN"
+  export EDITOR=nvim VISUAL=nvim
+  export LESSHISTFILE=- NODE_REPL_HISTORY= PYTHON_HISTORY=/dev/null SQLITE_HISTORY=/dev/null \
+    PSQL_HISTORY=/dev/null MYSQL_HISTFILE=/dev/null REDISCLI_HISTFILE=/dev/null
+fi
+export PATH
+# A handler, not an ignore: programs started below get the default Ctrl-C back.
+trap ':' INT QUIT
+
+cartella_hunk() { # the folder the mod asked for, else the starting one
+  local d=
+  [ -f "$CARTELLE/hunk.dir" ] && d=$(cat "$CARTELLE/hunk.dir" 2>/dev/null)
+  if [ -n "$d" ] && [ -d "$d" ]; then printf '%s\n' "$d"; else printf '%s\n' "$PARTENZA"; fi
+}
+PARTENZA=$PWD
+
+spf_config() { # the user's Superfile config with the panel's keys in place of his
+  local out="$priv/spf.toml"
+  local chiavi='sidebar_width|default_open_file_preview|show_image_preview|auto_check_update|zoxide_support|cd_on_quit|editor|dir_editor|ignore_missing_fields'
+  {
+    printf '%s\n' '# brudr-pannello: the panel keys, then the rest of the user config' \
+      'sidebar_width = 0' 'default_open_file_preview = false' 'show_image_preview = false' \
+      'auto_check_update = false' 'zoxide_support = false' 'cd_on_quit = false' \
+      'editor = ""' 'dir_editor = ""' 'ignore_missing_fields = true'
+    [ -f "$SPF_BASE" ] && grep -Ev "^[[:space:]]*($chiavi)[[:space:]]*=" "$SPF_BASE"
+  } > "$out"
+  printf '%s\n' "$out"
+}
+
+hunk_segue() { # hunk in the asked folder; restarted when the folder file changes
+  local dir ora pid
+  dir=$(cartella_hunk)
+  if [ -n "$PROVA" ]; then printf 'cartella: %s\n' "$dir"; esegui hunk diff --watch; return 0; fi
+  (cd "$dir" && exec hunk diff --watch) </dev/tty &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    sleep 1
+    ora=$(cartella_hunk)
+    [ "$ora" != "$dir" ] && kill "$pid" 2>/dev/null
+  done
+  wait "$pid"
+}
+
+avvia() {
+  case $tipo in
+    spf)
+      cfg=$(spf_config)
+      [ -n "$PROVA" ] && sed 's/^/spf.toml| /' "$cfg"
+      esegui spf -c "$cfg" ;;
+    nvim) esegui "$PANNELLI_BIN/nvim" ;;
+    hunk) hunk_segue ;;
+    quota)
+      # quota-brs is quota-axi --tui with the user's Claude profiles in his order.
+      if command -v quota-brs >/dev/null 2>&1; then esegui quota-brs --tui; else esegui quota-axi --tui; fi ;;
+    # config.fish moves ~/bin and /opt/homebrew/bin to the front of PATH
+    # (fish_add_path --move): -C runs after it and puts the private nvim first again.
+    privato) esegui fish --private -C 'set -gx PATH $BRUDR_PANNELLI_BIN $PATH' ;;
+  esac
+}
+
+attendi() { # after a program that ended at once: a key, or (hunk) a new folder
+  local prima
+  prima=$(cartella_hunk)
+  printf '\n%s ended right away (code %s). Press a key to start it again.\n' "$tipo" "$1"
+  local s
+  while :; do
+    read -rsn1 -t 1 _ </dev/tty
+    s=$?
+    [ $s = 0 ] && return 0
+    [ $s -gt 128 ] || sleep 1 # no terminal to read from: do not spin
+    [ "$tipo" = hunk ] && [ "$(cartella_hunk)" != "$prima" ] && return 0
+  done
+}
+
+if [ -n "$PROVA" ]; then
+  printf 'tipo: %s\nprivato: %s\n' "$tipo" "$privato"
+  [ $privato = 1 ] && printf 'TMPDIR: %s\nEDITOR: %s\n' "$TMPDIR" "$EDITOR"
+  printf 'PATH: %s\n' "$PATH"
+  avvia
+  exit 0
+fi
+
+while :; do
+  inizio=$SECONDS
+  avvia
+  codice=$?
+  [ $privato = 1 ] && pulisci_schermo
+  if (( SECONDS - inizio < 2 )); then attendi "$codice"; fi
+done
