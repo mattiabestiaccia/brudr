@@ -124,8 +124,15 @@ spf_config() { # the user's Superfile config with the panel's keys in place of h
       'default_open_file_preview = false' 'show_image_preview = false' 'show_panel_footer_info = true' \
       'auto_check_update = false' 'cd_on_quit = false' \
       'editor = ""' 'dir_editor = ""' 'ignore_missing_fields = true'
-    [ -f "$SPF_BASE" ] && grep -Ev "^[[:space:]]*($chiavi)[[:space:]]*=" "$SPF_BASE"
-  } > "$out"
+    # Only override top-level keys, not extensions in [open_with].
+    if [ -f "$SPF_BASE" ]; then
+      awk -v keys="$chiavi" '
+        /^[[:space:]]*\[/ { table = 1 }
+        !table && $0 ~ "^[[:space:]]*(" keys ")[[:space:]]*=" { next }
+        { print }
+      ' "$SPF_BASE"
+    fi
+  } > "$out" || return 1
   printf '%s\n' "$out"
 }
 
@@ -163,7 +170,12 @@ hunk_segue() { # hunk in the asked folder; restarted when the folder file change
 avvia() {
   case $tipo in
     spf)
-      cfg=$(spf_config)
+      # Do not let E fall back to the normal nvim if the private link is missing.
+      if ! [ -x "$PANNELLI_BIN/nvim" ] || ! [ "$PANNELLI_BIN/nvim" -ef "$0" ]; then
+        echo "brudr-pannello: private nvim link missing: $PANNELLI_BIN/nvim" >&2
+        return 127
+      fi
+      cfg=$(spf_config) || return 1
       [ -n "$PROVA" ] && sed 's/^/spf.toml| /' "$cfg"
       esegui spf -c "$cfg" ;;
     nvim) esegui "$PANNELLI_BIN/nvim" ;;
@@ -231,7 +243,7 @@ if [ -n "$PROVA" ]; then
   [ $privato = 1 ] && printf 'TMPDIR: %s\nEDITOR: %s\n' "$TMPDIR" "$EDITOR"
   printf 'PATH: %s\n' "$PATH"
   avvia
-  exit 0
+  exit $?
 fi
 
 while :; do

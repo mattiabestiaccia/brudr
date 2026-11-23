@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""Detached open_with handler for Superfile on macOS; no shell or temporary files."""
+import os
+from pathlib import Path
+import stat
+import subprocess
+import sys
+from urllib.parse import quote
+
+MARKDOWN = frozenset("md markdown mdown mkd mkdn".split())
+CODE = frozenset("""
+    asm astro bash bat c cc clj cljc cljs cmake cpp cs css cxx dart el elm erl ex exs
+    fish fs fsx go gradle groovy h hpp htm html hxx java jl js jsx kt kts less lua m
+    mjs cjs mm ml mli nim nix php pl pm ps1 py pyi pyw r rb rs sass scala scss sh
+    sql svelte swift ts tsx mts cts typ vb vim vue zig zsh dockerfile makefile
+    conf cfg ini properties env json5 hcl tf tfvars proto graphql gql
+""".split())
+DATA = {"json": "json", "jsonc": "json", "toml": "toml", "yaml": "yaml", "yml": "yaml", "xml": "xml"}
+EXTENSIONS = MARKDOWN | CODE | DATA.keys()
+LIMIT = 1024 * 1024  # bound parsing and the size of the read-only preview
+
+# Superfile detaches handlers from the TTY. AppKit shows the table in its own
+# modal window instead of writing into the TUI or saving/restoring a terminal tab.
+VIEW = r'''
+ObjC.import('AppKit');
+function run(argv) {
+    const data = $.NSFileHandle.fileHandleWithStandardInput.readDataToEndOfFile;
+    const text = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding);
+    const frame = $.NSMakeRect(0, 0, 720, 400);
+    const scroll = $.NSScrollView.alloc.initWithFrame(frame);
+    scroll.hasVerticalScroller = true;
+    scroll.hasHorizontalScroller = true;
+    const view = $.NSTextView.alloc.initWithFrame(frame);
+    view.editable = false;
+    view.selectable = true;
+    view.verticallyResizable = true;
+    view.horizontallyResizable = true;
+    view.maxSize = $.NSMakeSize(10000000, 10000000);
+    view.textContainer.widthTracksTextView = false;
+    view.textContainer.containerSize = $.NSMakeSize(10000000, 10000000);
+    view.font = $.NSFont.userFixedPitchFontOfSize(12);
+    view.string = text;
+    scroll.documentView = view;
+    const app = $.NSApplication.sharedApplication;
+    app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);
+    app.activateIgnoringOtherApps(true);
+    const alert = $.NSAlert.alloc.init;
+    alert.messageText = argv[0];
+    alert.accessoryView = scroll;
+    alert.addButtonWithTitle('Chiudi');
+    alert.runModal;
+}
+'''
+
+
+def table(path, fmt):
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                return b"Anteprima disponibile solo per file regolari."
+            raw = stream.read(LIMIT + 1)
+        if len(raw) > LIMIT:
+            return b"Anteprima non disponibile: il file supera 1 MiB. Aprilo con E."
+        source = ("$env.config.use_ansi_coloring = false; "
+                  f"$in | from {fmt} | table --expand --width 100")
+        proc = subprocess.run(["nu", "--stdin", "--no-config-file", "-c", source],
+                              input=raw, capture_output=True, timeout=10)
+        if proc.returncode:
+            return b"Nushell non riesce a leggere il file in questo formato. Aprilo con E."
+        if len(proc.stdout) > LIMIT:
+            return b"La tabella supera 1 MiB. Apri il file con E."
+        return proc.stdout or b"Tabella vuota."
+    except (OSError, subprocess.TimeoutExpired):
+        return b"Anteprima Nushell non disponibile. Apri il file con E."
+
+
+def main(argv):
+    if len(argv) != 1:
+        return 64
+    # Go passes exactly one path argument. Make it absolute, without interpreting
+    # symlinks, shell syntax, URI characters, or filenames starting with '-'.
+    path = Path(os.path.abspath(argv[0]))
+    # Same extension rule as Go's filepath.Ext, including dotfiles like .env.
+    ext = path.name.rpartition(".")[2].lower() if "." in path.name else ""
+    if ext in MARKDOWN:
+        uri = "obsidian://open?path=" + quote(str(path), safe="")
+        command = ["/usr/bin/open", "-a", "Obsidian", uri]
+    elif ext in CODE:
+        command = ["/usr/bin/open", "-a", "Zed", str(path)]
+    elif ext in DATA:
+        title = f"Nushell — {path.name}"
+        return subprocess.run(["/usr/bin/osascript", "-l", "JavaScript", "-e", VIEW, title],
+                              input=table(path, DATA[ext])).returncode
+    else:
+        command = ["/usr/bin/open", str(path)]
+    return subprocess.run(command).returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

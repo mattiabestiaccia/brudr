@@ -199,18 +199,31 @@ class ConfigurazioneSpf(Cartella):
 
     def test_chiavi_del_pannello_al_posto_di_quelle_dell_utente(self):
         base = ('editor = "code"\nsidebar_width = 20\ndefault_open_file_preview = true\nshow_image_preview = true\n'
-                'theme = "poimandres"\nzoxide_support = true\n[open_with]\ntoml = "nvim"\n')
+                'theme = "poimandres"\nzoxide_support = true\n'
+                '[open_with]\ntoml = "spf-apri"\neditor = "custom-opener"\n')
         testo = self.config(base)
         for chiave, valore in (("default_open_file_preview", "false"),
                                ("show_image_preview", "false"), ("show_panel_footer_info", "true"), ("editor", '""'),
                                ("auto_check_update", "false"), ("ignore_missing_fields", "true")):
-            righe = [r for r in testo.splitlines() if re.match(r"\s*%s\s*=" % chiave, r)]
+            radice = testo.split("[open_with]")[0]
+            righe = [r for r in radice.splitlines() if re.match(r"\s*%s\s*=" % chiave, r)]
             self.assertEqual(righe, ["%s = %s" % (chiave, valore)], chiave)
         self.assertIn('theme = "poimandres"', testo)
         self.assertIn("sidebar_width = 20", testo)
         self.assertIn("zoxide_support = true", testo)
         self.assertLess(testo.index("default_open_file_preview = false"), testo.index("[open_with]"), "panel keys must be top level")
-        self.assertIn('toml = "nvim"', testo)
+        self.assertIn('toml = "spf-apri"', testo)
+
+    def test_open_with_non_perde_estensioni_omonime(self):
+        testo = self.config('editor = "nvim"\n[open_with]\neditor = "custom-opener"\n')
+        self.assertTrue(testo.endswith('editor = "custom-opener"'))
+
+    def test_spf_non_parte_senza_neovim_privato(self):
+        os.remove(os.path.join(self.bin, "nvim"))
+        c, out, err = self.pannello("spf")
+        self.assertEqual(c, 127)
+        self.assertNotIn("esegue: spf", out)
+        self.assertIn("private nvim link missing", err)
 
     def test_senza_config_dell_utente(self):
         testo = self.config("")
