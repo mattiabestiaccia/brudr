@@ -23,7 +23,14 @@
 # ~/.config/herdr-app/data/pannelli/hunk.dir; on a change hunk restarts there.
 # Superfile and Neovim stay where they are (D2 and D3).
 #
+# hunk outside a Git repository is not started: one calm line, and the panel
+# waits for the space to change folder. A program that ended right away waits
+# for a key; the replies the terminal sends to a program's queries, and the mouse
+# reports of a program that left mouse tracking on, are not keys.
+#
 # BRUDR_PANNELLO_PROVA=1 prints what would run, once, and exits (tests).
+# BRUDR_PANNELLO_PROVA=tasto reads BRUDR_PANNELLO_TTY like the wait for a key
+# and prints whether it found one (tests).
 set -u
 
 PANNELLI_BIN="${BRUDR_PANNELLI_BIN:-$HOME/.config/brudr-pannelli/bin}"
@@ -31,6 +38,8 @@ PANNELLI_TMP="${BRUDR_PANNELLI_TMP:-$HOME/.config/brudr-pannelli/tmp}"
 CARTELLE="${BRUDR_PANNELLI_DATI:-$HOME/.config/herdr-app/data/pannelli}"
 SPF_BASE="${BRUDR_SPF_BASE:-$HOME/Library/Application Support/superfile/config.toml}"
 PROVA="${BRUDR_PANNELLO_PROVA:-}"
+TTY="${BRUDR_PANNELLO_TTY:-/dev/tty}"
+RIPARTI=75 # hunk_segue: the folder changed, start again without waiting
 # The core gives programs the login session's environment, not a shell's PATH.
 PATH="$HOME/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"
 
@@ -120,11 +129,25 @@ spf_config() { # the user's Superfile config with the panel's keys in place of h
   printf '%s\n' "$out"
 }
 
+repository() { git -C "$1" rev-parse --is-inside-work-tree >/dev/null 2>&1; }
+
+# Outside a Git repository: one line, then wait until the folder changes or
+# becomes a repository. Nothing restarts meanwhile.
+senza_repository() {
+  local dir=$1
+  printf '\nNessun repository Git in %s.\nhunk parte quando lo spazio passa a una cartella con un repository.\n' "$dir"
+  [ -n "$PROVA" ] && return 0
+  while [ "$(cartella_hunk)" = "$dir" ] && ! repository "$dir"; do sleep 2; done
+  return $RIPARTI
+}
+
 hunk_segue() { # hunk in the asked folder; restarted when the folder file changes
   local dir ora pid
   dir=$(cartella_hunk)
-  if [ -n "$PROVA" ]; then printf 'cartella: %s\n' "$dir"; esegui hunk diff --watch; return 0; fi
-  (cd "$dir" && exec hunk diff --watch) </dev/tty &
+  [ -n "$PROVA" ] && printf 'cartella: %s\n' "$dir"
+  if ! repository "$dir"; then senza_repository "$dir"; return; fi
+  if [ -n "$PROVA" ]; then esegui hunk diff --watch; return 0; fi
+  (cd "$dir" && exec hunk diff --watch) <"$TTY" &
   pid=$!
   while kill -0 "$pid" 2>/dev/null; do
     sleep 1
@@ -132,6 +155,9 @@ hunk_segue() { # hunk in the asked folder; restarted when the folder file change
     [ "$ora" != "$dir" ] && kill "$pid" 2>/dev/null
   done
   wait "$pid"
+  local codice=$?
+  [ "$(cartella_hunk)" != "$dir" ] && return $RIPARTI
+  return $codice
 }
 
 avvia() {
@@ -151,19 +177,54 @@ avvia() {
   esac
 }
 
-attendi() { # after a program that ended at once: a key, or (hunk) a new folder
-  local prima
-  prima=$(cartella_hunk)
-  printf '\n%s ended right away (code %s). Press a key to start it again.\n' "$tipo" "$1"
-  local s
-  while :; do
-    read -rsn1 -t 1 _ </dev/tty
-    s=$?
-    [ $s = 0 ] && return 0
-    [ $s -gt 128 ] || sleep 1 # no terminal to read from: do not spin
-    [ "$tipo" = hunk ] && [ "$(cartella_hunk)" != "$prima" ] && return 0
-  done
+# Modes a full-screen program may leave on when it ends badly: mouse reports,
+# focus reports, kitty keyboard, bracketed paste, the other screen, a hidden cursor.
+ripristina_terminale() {
+  printf '\033[?1000l\033[?1002l\033[?1003l\033[?1006l\033[?1004l\033[<u\033[?2004l\033[?1049l\033[?25h'
 }
+
+# One key from a person: 0. An escape sequence (a reply to a program's query,
+# a mouse report) is read to its end and is not a key: 2. Nothing: read's code
+# (above 128 when no key came in time, 1 when there is no terminal to read).
+# Reads fd 3, opened on the terminal by the caller.
+tasto() {
+  local c s
+  IFS= read -rsn1 -t 1 -u 3 c
+  s=$?
+  [ $s = 0 ] || return $s
+  [ -z "$c" ] && return 0 # Enter
+  [ "$c" != $'\033' ] && return 0
+  while IFS= read -rsn1 -t 1 -u 3 c; do :; done
+  return 2
+}
+
+attendi() { # after a program that ended at once: a key, or (hunk) a new folder
+  local prima s
+  prima=$(cartella_hunk)
+  ripristina_terminale
+  exec 3<"$TTY" || { sleep 1; return 0; }
+  # What the program left in the input is not an answer to this question.
+  while IFS= read -rsn1 -t 1 -u 3 _; do :; done
+  printf '\n%s ended right away (code %s). Press a key to start it again.\n' "$tipo" "$1"
+  while :; do
+    tasto
+    s=$?
+    [ $s = 0 ] && break
+    [ $s = 1 ] && sleep 1 # no terminal to read from: do not spin
+    [ "$tipo" = hunk ] && [ "$(cartella_hunk)" != "$prima" ] && break
+  done
+  exec 3<&-
+  return 0
+}
+
+if [ "$PROVA" = tasto ]; then
+  exec 3<"$TTY" || exit 1
+  for _ in 1 2 3; do
+    if tasto; then echo tasto; exit 0; fi
+  done
+  echo "nessun tasto"
+  exit 0
+fi
 
 if [ -n "$PROVA" ]; then
   printf 'tipo: %s\nprivato: %s\n' "$tipo" "$privato"
@@ -178,5 +239,5 @@ while :; do
   avvia
   codice=$?
   [ $privato = 1 ] && pulisci_schermo
-  if (( SECONDS - inizio < 2 )); then attendi "$codice"; fi
+  if [ "$codice" != $RIPARTI ] && (( SECONDS - inizio < 2 )); then attendi "$codice"; fi
 done
