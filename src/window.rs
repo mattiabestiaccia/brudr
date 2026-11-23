@@ -1,7 +1,7 @@
 //! The window. The chrome (`layouts/<name>.json`) is a tree of the locked
 //! primitives; a `{ "tab": "active" }` block shows the selected
-//! tab's terminals as it arranges them. Every visible part that isn't a
-//! terminal is a mod. Commands (commands.rs) are the one way to change
+//! tab's terminals as it arranges them. Most visible parts outside the
+//! terminals are mods. Commands (commands.rs) are the one way to change
 //! anything: keys, mods, menus and agents all run them.
 
 use crate::hc::Core;
@@ -10,6 +10,7 @@ mod movable;
 mod pane_drag;
 mod pane_size;
 mod titlebar;
+mod web_panel;
 
 use crate::layout::{Axis, Background as Paint, Content, Fit, HeaderContent, Kind, Line, Node, PaneFrame, Share, Size as Span};
 use crate::model::{self, Tab, Model};
@@ -380,6 +381,7 @@ pub struct AppWindow {
     /// Mods placed once; later the layout decides where (or whether) they show.
     seen: BTreeSet<String>,
     bounds: Rc<RefCell<HashMap<String, Bounds<Pixels>>>>,
+    web_panels: web_panel::Panels,
     hidden_fit: pane_size::HiddenFit,
     drag: Option<Drag>,
     written_layout: String,
@@ -492,6 +494,7 @@ impl AppWindow {
             folders: mods::scan().into_iter().map(|f| (f.id.clone(), f)).collect(),
             seen,
             bounds: Default::default(),
+            web_panels: Default::default(),
             hidden_fit: Default::default(),
             drag: None,
             written_layout: String::new(),
@@ -4094,7 +4097,7 @@ impl AppWindow {
     }
 
     /// `frame`: how panes are wrapped here (inside a framed tab), else None.
-    fn render_node(&self, n: &Node, focused: &HashSet<String>, frame: Option<&PaneFrame>, cx: &mut Context<Self>) -> AnyElement {
+    fn render_node(&self, n: &Node, focused: &HashSet<String>, frame: Option<&PaneFrame>, web: Option<&web_panel::Frame>, cx: &mut Context<Self>) -> AnyElement {
         let mut el = div().relative().overflow_hidden().size_full().flex();
         let bounds_map = self.bounds.clone();
         let id = n.id.clone();
@@ -4105,7 +4108,7 @@ impl AppWindow {
         }
         let el = match &n.kind {
             Kind::Block { content } => {
-                let inner = self.render_block(n, content, focused, cx);
+                let inner = self.render_block(n, content, focused, web, cx);
                 match frame.filter(|_| n.is_pane()) {
                     Some(f) => el.child(self.frame_pane(n, f, focused.contains(&n.id), inner, cx)),
                     None => el.child(inner),
@@ -4129,7 +4132,7 @@ impl AppWindow {
                     // No clipping here: a child's shadow may fall outside it (the child clips itself).
                     let mut slot = div().relative().flex().min_w_0().min_h_0();
                     slot = sized(slot, child, axis, total);
-                    el = el.child(slot.child(self.render_node(child, focused, frame, cx)));
+                    el = el.child(slot.child(self.render_node(child, focused, frame, web, cx)));
                 }
                 el
             }
@@ -4144,7 +4147,7 @@ impl AppWindow {
                     (h.bottom(), div().flex_none().h(settings::z(height)).w_full().flex().child(head))
                 });
                 let body = match n.active_child() {
-                    Some(child) => self.render_node(child, focused, frame, cx),
+                    Some(child) => self.render_node(child, focused, frame, web, cx),
                     None => div().into_any_element(),
                 };
                 let body = div().flex_1().min_h_0().flex().child(body);
@@ -4159,8 +4162,9 @@ impl AppWindow {
         el.children(self.render_floats(n, cx)).children(self.pane_grip(&n.id, row, cx)).into_any_element()
     }
 
-    fn render_block(&self, n: &Node, content: &Content, focused: &HashSet<String>, cx: &mut Context<Self>) -> AnyElement {
+    fn render_block(&self, n: &Node, content: &Content, focused: &HashSet<String>, web: Option<&web_panel::Frame>, cx: &mut Context<Self>) -> AnyElement {
         match content {
+            Content::Web { web: page } => web_panel::Frame::element(web.filter(|_| !n.hidden), &n.id, &page.url),
             Content::Terminal { .. } => match self.pane_term(&n.id) {
                 Some(t) => {
                     let id = n.id.clone();
@@ -4200,7 +4204,7 @@ impl AppWindow {
                     .into_any_element(),
             },
             Content::Context { .. } => match self.model.active_tab() {
-                Some(c) => self.render_node(c.shown(), focused, self.pane_frame(), cx),
+                Some(c) => self.render_node(c.shown(), focused, self.pane_frame(), None, cx),
                 None if self.documents.get("").is_some_and(|s| s.layout() == "loading") => div().size_full().into_any_element(),
                 None => {
                     let key = crate::keys::listing().into_iter().find(|(_, _, a)| a == "space.new").map(|(_, k, _)| format!(" ({k})"));
@@ -4398,7 +4402,7 @@ impl AppWindow {
             let (w, h) = (span(o.size.width, viewport.width), span(o.size.height, viewport.height));
             let sized = |v: f32| v > 0.0 || o.kind != OverlayKind::Window;
             let content = match &o.layout {
-                Some(l) => self.render_node(l, &HashSet::new(), None, cx),
+                Some(l) => self.render_node(l, &HashSet::new(), None, None, cx),
                 None => self.render_slot(&o.slot, cx),
             };
             let body = div()
@@ -4963,7 +4967,8 @@ impl Render for AppWindow {
             self.refresh_snapshot_mods(cx);
         }
         let focused = self.focused_path(window, cx);
-        let tree = self.render_node(&self.chrome, &focused, None, cx);
+        let web = self.web_panels.frame(&self.layout_name, &self.chrome);
+        let tree = self.render_node(&self.chrome, &focused, None, Some(&web), cx);
         let tree = self.window_frame(tree, window, cx);
         let overlays = self.render_overlays(window.viewport_size(), cx);
         let tracker = self.float_tracker(cx);
@@ -5058,6 +5063,7 @@ impl Render for AppWindow {
             .children(tracker)
             .children(win_tracker)
             .child(pane_drag)
+            .children(web.finish(cx))
             .child(crate::bench::frame_end())
     }
 }

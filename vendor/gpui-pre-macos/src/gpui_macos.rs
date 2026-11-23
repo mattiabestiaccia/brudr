@@ -59,6 +59,16 @@ pub(crate) use text_system::*;
 pub use platform::MacPlatform;
 pub use events::{OptionAsAlt, option_as_alt, set_option_as_alt};
 
+/// HERDR: Translate a key-down from an embedded AppKit view without running
+/// GPUIView's IME/text handler. The embedded view owns unhandled input.
+///
+/// # Safety
+/// `event` must point to a live AppKit `NSEvent` on the main thread.
+pub unsafe fn embedded_key_down(event: *const std::ffi::c_void) -> Option<gpui::PlatformInput> {
+    let input = unsafe { events::platform_input_from_native(event.cast_mut().cast(), None) }?;
+    matches!(input, gpui::PlatformInput::KeyDown(_)).then_some(input)
+}
+
 trait BoolExt {
     fn to_objc(self) -> BOOL;
 }

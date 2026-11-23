@@ -28,6 +28,13 @@ pub enum Content {
     },
     /// An agent's terminal, full size (`"focused"`: the selected agent).
     Agent { agent: String },
+    /// A native browser block in the personal macOS window layout.
+    Web { web: Web },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Web {
+    pub url: String,
 }
 
 /// Which side of its node a floating block sits on. Left/right make it

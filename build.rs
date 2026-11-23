@@ -39,6 +39,16 @@ fn main() {
     embed(&base, "defaults/icons", "DEFAULT_ICONS", "default_icons.rs");
     embed(&base, "defaults/frame", "FRAME_MODS", "frame_mods.rs");
 
+    // Compile the native browser bridge only for the macOS app.
+    #[cfg(target_os = "macos")]
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+        let file = "src/window/web_panel.m";
+        println!("cargo:rerun-if-changed={file}");
+        cc::Build::new().file(file).flags(["-fobjc-arc", "-fblocks"]).compile("brudr_web_panel");
+        println!("cargo:rustc-link-lib=framework=AppKit");
+        println!("cargo:rustc-link-lib=framework=WebKit");
+    }
+
     // Windows takes the window, taskbar and Start menu icon from the program file.
     #[cfg(windows)]
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {

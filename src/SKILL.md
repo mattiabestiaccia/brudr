@@ -112,6 +112,10 @@ set). It is the installed guide to settings, layouts, commands and mods.
 Read the generated `.d.ts` files beside it for full API details; do not edit
 those files or the generated guide. The app rewrites them on start.
 
+Personal brudr on macOS 14+ supports a `web` content block in its window
+layout, for manual browsing only. It has no agent-facing navigation or page
+inspection API. See the installed guide for the block format.
+
 - Home defaults to `~/.config/herdr-app`; `HERDR_APP_HOME` selects another.
 - Mods live in `mods/<name>/` with `main.js` and optional `mod.json`.
   They are trusted JavaScript with command and network access.
