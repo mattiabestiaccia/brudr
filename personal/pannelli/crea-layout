@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""crea-layout: the brudr-pannelli layout, made from a copy of herdr-transparent.
+
+Usage: crea-layout <herdr-transparent.json> <brudr-pannelli.json>
+
+Same window as the source (look, transparency, sidebar, tabs, status), with the
+right panel's stack "panel-body" replaced: five terminal blocks by name, the
+`pannelli` mod as the stack header. The ids "files" and "changes" stay, so the
+tab bar's Files and Changes buttons open Superfile and hunk. Private has an
+opaque black background (23 November 2026). The source file is only read.
+"""
+import copy
+import json
+import os
+import sys
+
+TITOLO = "brudr pannelli"
+FIGLI = [
+    ("files", "brudr-spf", None),
+    ("neovim", "brudr-nvim", None),
+    ("changes", "brudr-hunk", None),
+    ("quota", "brudr-quota", None),
+    ("privato", "brudr-privato", "#000000"),
+]
+
+
+def stack():
+    figli = []
+    for id_, nome, sfondo in FIGLI:
+        n = {"id": id_, "type": "block"}
+        if sfondo:
+            n["background"] = sfondo
+        n["content"] = {"terminal": nome}
+        figli.append(n)
+    return {
+        "id": "panel-body",
+        "type": "stack",
+        "active": "files",
+        "children": figli,
+        "header": {"content": {"mod": "pannelli"}, "height": 32},
+    }
+
+
+def sostituisci(n, nuovo):
+    """Replaces the node with id panel-body; returns how many it replaced."""
+    trovati = 0
+    for i, c in enumerate(n.get("children", [])):
+        if c.get("id") == "panel-body":
+            n["children"][i] = nuovo
+            trovati += 1
+        else:
+            trovati += sostituisci(c, nuovo)
+    return trovati
+
+
+def crea(sorgente):
+    d = copy.deepcopy(sorgente)
+    if sostituisci(d, stack()) != 1:
+        raise ValueError("the source must have exactly one node with id panel-body")
+    d["title"] = TITOLO
+    d.pop("cloned_from", None)
+    return d
+
+
+def main(argv):
+    if len(argv) != 3:
+        sys.stderr.write(__doc__)
+        return 64
+    with open(argv[1], encoding="utf-8") as f:
+        d = crea(json.load(f))
+    tmp = argv[2] + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    os.replace(tmp, argv[2])
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
