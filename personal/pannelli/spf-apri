@@ -9,20 +9,29 @@ table in a pager (less), q to leave:
   layout block spf-vista beside the panel's own; q shows Superfile again;
 - in a brudr terminal of a tab, the table opens in a new terminal to its right;
   q closes it;
-- elsewhere (Superfile outside brudr, brudr not answering), in a macOS window,
-  in plain text, as before.
+- outside brudr (Terminal, iTerm, another app) with brudr's window open, in a new
+  terminal of brudr, right of the focused pane of the shown tab, and brudr comes
+  to the front; q closes it;
+- with no brudr window answering (or the panel's view failing), in a new window
+  of macOS Terminal; q closes it;
+- from another private terminal (the Private shell), and when all of these fail,
+  in a macOS window, in plain text, as before: that table never passes the core.
 The file's bytes reach the table through a named pipe in a folder of our own
 (0700, in the panel's private TMPDIR there): never in a file, never in an argument.
-The table's own terminal gets only the pipe's path.
+The table's own terminal gets only the pipe's path (Terminal: a script in that
+folder, with the pipe's path and nothing of the file, gone once the data passed).
 
-`spf-apri --vista <pipe> pannello|accanto` is that table's program (it runs in the
-new terminal, started by herdr-core with the login environment, not ours).
+`spf-apri --vista <pipe> pannello|accanto|finestra` is that table's program (it
+runs in the new terminal, started by herdr-core or Terminal with their own
+environment, not ours).
 """
 import json
 import os
 from pathlib import Path
 import re
+import shlex
 import signal
+import socket
 import stat
 import subprocess
 import sys
@@ -48,6 +57,10 @@ PANNELLO, VISTA = "files", "spf-vista"
 SPF, NOME_VISTA = "brudr-spf", "brudr-spf-vista"
 PANEL, PRIVATE = "brudr.panel", "brudr.private"
 ATTESA = 10  # seconds for the view to take the data, and for the data to come
+ATTESA_TERMINALE = 30  # Terminal may have to start first
+APP = ("personal.herdr.app", "dev.herdr.app")  # brudr, then the official Herdr: one at a time
+OPEN, LSAPPINFO, OSASCRIPT, XATTR = "/usr/bin/open", "/usr/bin/lsappinfo", "/usr/bin/osascript", "/usr/bin/xattr"
+TTY = re.compile(r"/dev/ttys?[0-9]+")
 CHIAMATA = 5  # seconds for one hc or herdr-app call
 MSG_GRANDE = "Anteprima non disponibile: il file supera 1 MiB. Aprilo con E."
 MSG_REGOLARE = "Anteprima disponibile solo per file regolari."
@@ -87,6 +100,22 @@ function run(argv) {
     alert.addButtonWithTitle('Chiudi');
     alert.runModal;
 }
+'''
+
+# Terminal: the view's window closes after q, also when the profile keeps
+# windows of ended shells ("[Process completed]"). Only a window whose shown
+# tab is the view's tty and runs nothing any more; the tty comes as an argument.
+CHIUDI = r'''
+on run argv
+    delay 0.5
+    tell application "Terminal"
+        repeat with w in windows
+            try
+                if tty of selected tab of w is item 1 of argv and not busy of selected tab of w then close w
+            end try
+        end repeat
+    end tell
+end run
 '''
 
 
@@ -197,6 +226,7 @@ class Canale:
         # TMPDIR read now: in the Superfile panel it is the panel's private one.
         self.cartella = tempfile.mkdtemp(prefix="spf-vista.", dir=os.environ.get("TMPDIR") or None)
         self.fifo = os.path.join(self.cartella, "dati")
+        self.comando = os.path.join(self.cartella, "vista.command")  # Terminal only
         os.mkfifo(self.fifo, 0o600)
         return self
 
@@ -220,10 +250,11 @@ class Canale:
         return True
 
     def __exit__(self, *_):
-        try:
-            os.unlink(self.fifo)
-        except OSError:
-            pass
+        for f in (self.fifo, self.comando):
+            try:
+                os.unlink(f)
+            except OSError:
+                pass
         try:
             os.rmdir(self.cartella)
         except OSError:
@@ -291,35 +322,97 @@ def avvia_accanto(argv, terminale):
     return ok
 
 
-def in_brudr(path, fmt):
-    """Shows the table in brudr; False when brudr cannot (the window then)."""
-    terminale = os.environ.get("HC_TERMINAL_ID")
-    if not terminale:
+def porta_davanti():
+    """brudr (or Herdr) to the front; never starts an app."""
+    casa = os.environ.get("HERDR_APP_HOME") or os.path.join(
+        os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "herdr-app")
+    # What a second launch of the app does: its window comes to the front.
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(3)
+            s.connect(os.path.join(casa, "herdr-app.sock"))
+            s.sendall(b'{"raise":true}\n')
+            s.recv(4096)
+    except OSError:
+        pass
+    # macOS may not let a background app take the front by itself: open
+    # activates a running app as a click in the Dock does. Only a running one.
+    for bundle in APP:
+        code, out = chiama([LSAPPINFO, "find", f"bundleid={bundle}"])
+        if code == 0 and out.strip():
+            chiama([OPEN, "-b", bundle])
+            return
+
+
+def avvia_in_brudr(argv):
+    """The view in a new terminal of brudr's window, right of the focused pane of
+    the shown tab (Superfile runs elsewhere); brudr comes to the front."""
+    ok, _ = finestra_do("pane.split", {"direction": "right", "argv": argv})
+    if ok:
+        porta_davanti()
+    return ok
+
+
+def avvia_nel_terminale(argv, canale):
+    """The view in a new window of macOS Terminal, by Launch Services (open):
+    no Apple Events from whatever app Superfile runs in."""
+    riga = " ".join(shlex.quote(a) for a in [sys.executable, *argv])
+    try:
+        fd = os.open(canale.comando, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o700)
+        with os.fdopen(fd, "w") as f:
+            f.write(f"#!/bin/sh\nexec {riga}\n")
+    except OSError:
         return False
+    # An app that quarantines what it writes would make Gatekeeper refuse the script.
+    chiama([XATTR, "-d", "com.apple.quarantine", canale.comando])
+    code, _ = chiama([OPEN, "-a", "Terminal", canale.comando])
+    return code == 0
+
+
+def vie(terminale):
+    """Where the table can go, in order; [] keeps the plain window."""
+    if not terminale:
+        return ["brudr", "terminale"]
     rec = record(terminale)
     if rec is None:
-        return False
+        return ["terminale"]  # the core does not answer: nothing through it
     l = etichette(rec)
     if l.get(PANEL) == "spf" and l.get(PRIVATE):
-        modo = "pannello"
-    elif l.get(PRIVATE):
-        return False  # another private terminal: its table stays off the core
-    else:
-        modo = "accanto"
-    raw, messaggio = leggi(path)
-    testa = json.dumps({"nome": path.name, "formato": fmt, "messaggio": messaggio}).encode() + b"\n"
-    with Canale() as canale:
-        argv = [os.path.abspath(__file__), "--vista", canale.fifo, modo]
-        avviata = avvia_nel_pannello(argv) if modo == "pannello" else avvia_accanto(argv, terminale)
-        if not avviata:
-            return False
-        if canale.consegna(testa + (raw or b"")):
-            return True
-        if modo == "pannello":
-            rec = record(NOME_VISTA)
-            if rec is not None and nostra(rec):
-                chiama(["hc", "kill", NOME_VISTA])
+        return ["pannello", "terminale"]  # never an unlabeled terminal of the core
+    if l.get(PRIVATE):
+        return []  # another private terminal (the Private shell): its table stays off the core
+    return ["accanto", "brudr", "terminale"]
+
+
+def mostra(path, fmt):
+    """Shows the table in a terminal; False when none could (the window then)."""
+    terminale = os.environ.get("HC_TERMINAL_ID")
+    strade = vie(terminale)
+    if not strade:
         return False
+    raw, messaggio = leggi(path)
+    dati = json.dumps({"nome": path.name, "formato": fmt, "messaggio": messaggio}).encode() + b"\n" + (raw or b"")
+    for via in strade:
+        modo = {"pannello": "pannello", "terminale": "finestra"}.get(via, "accanto")
+        with Canale() as canale:
+            argv = [os.path.abspath(__file__), "--vista", canale.fifo, modo]
+            if via == "pannello":
+                avviata = avvia_nel_pannello(argv)
+            elif via == "accanto":
+                avviata = avvia_accanto(argv, terminale)
+            elif via == "brudr":
+                avviata = avvia_in_brudr(argv)
+            else:
+                avviata = avvia_nel_terminale(argv, canale)
+            if not avviata:
+                continue
+            if canale.consegna(dati, ATTESA_TERMINALE if via == "terminale" else ATTESA):
+                return True
+            if via == "pannello":
+                rec = record(NOME_VISTA)
+                if rec is not None and nostra(rec):
+                    chiama(["hc", "kill", NOME_VISTA])
+    return False
 
 
 # ---- the view, in its own terminal
@@ -408,8 +501,24 @@ def torna_a_superfile():
     finestra_do("pane.focus", {"terminal": SPF})
 
 
+def chiudi_finestra():
+    """Terminal: closes the view's window once its shell has ended. Detached,
+    so it outlives the view and the shell."""
+    try:
+        tty = os.ttyname(sys.stdin.fileno())
+    except OSError:
+        return
+    if not TTY.fullmatch(tty):
+        return
+    try:
+        subprocess.Popen([OSASCRIPT, "-e", CHIUDI, tty], start_new_session=True, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
 def vista(fifo, modo):
-    if modo not in ("pannello", "accanto"):
+    if modo not in ("pannello", "accanto", "finestra"):
         return 64
     os.umask(0o077)
     signal.signal(signal.SIGINT, lambda *_: None)  # Ctrl-C belongs to less
@@ -438,6 +547,8 @@ def vista(fifo, modo):
         # q: back to Superfile in the panel. A kill or hangup ends Python before this.
         if modo == "pannello":
             torna_a_superfile()
+        elif modo == "finestra":
+            chiudi_finestra()
     finally:
         # The core saves an ended terminal's last screen: leave it blank.
         sys.stdout.write("\x1b[3J\x1b[H\x1b[2J")
@@ -462,7 +573,7 @@ def main(argv):
     elif ext in CODE:
         command = ["/usr/bin/open", "-a", "Zed", str(path)]
     elif ext in DATA:
-        if in_brudr(path, DATA[ext]):
+        if mostra(path, DATA[ext]):
             return 0
         return finestra(path, DATA[ext])
     else:

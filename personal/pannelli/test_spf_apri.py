@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """Tests of the detached Superfile opener, without showing any GUI window.
 
-The brudr part runs against fake hc, herdr-app and less (no core, no window,
-no terminal): the fakes log what they are asked; `hc run` and `herdr-app do
-pane.split` start the real view (`spf-apri --vista`) in the background, which
-reads the named pipe, makes the table with the real Nushell and gives it to the
-fake less. Fake data only.
+The brudr part runs against fake hc, herdr-app, less, open and lsappinfo (no
+core, no window, no terminal): the fakes log what they are asked; `hc run`,
+`herdr-app do pane.split` and `open -a Terminal` start the real view
+(`spf-apri --vista`) in the background, which reads the named pipe, makes the
+table with the real Nushell and gives it to the fake less. Fake data only.
 """
 import json
 import os
 from pathlib import Path
 import runpy
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
@@ -22,7 +24,7 @@ from unittest.mock import patch
 QUI = Path(__file__).resolve().parent
 OPENER = runpy.run_path(str(QUI / "spf-apri"))
 
-# One program for hc, herdr-app and less, told apart by its name.
+# One program for hc, herdr-app, less, open, lsappinfo and xattr, told apart by its name.
 FINTO = r'''#!/usr/bin/env python3
 import json, os, subprocess, sys
 nome = os.path.basename(sys.argv[0]); args = sys.argv[1:]
@@ -37,7 +39,21 @@ if nome == "less":
     testo = sys.stdin.buffer.read().decode("utf-8", "replace")
     log(argv=args, testo=testo, env={k: os.environ.get(k) for k in ("LESS", "LESSSECURE", "LESSHISTFILE")})
     sys.exit(0)
+if nome == "open":
+    if args[:2] == ["-a", "Terminal"]:
+        log(argv=args, script=open(args[2]).read(), modo=oct(os.stat(args[2]).st_mode & 0o777))
+        if conf.get("open_fallisce"):
+            sys.exit(1)
+        vista([args[2]])  # what Terminal does with the script: runs it
+    else:
+        log(argv=args)
+    sys.exit(0)
 log(argv=args)
+if nome == "lsappinfo":
+    bundle = args[1].split("=", 1)[1]
+    if bundle in conf.get("app", []):
+        print(f'ASN:0x0-0x1-"{bundle}":')
+    sys.exit(0)
 if nome == "hc":
     verbo = args[0]
     if verbo == "get":
@@ -155,8 +171,9 @@ class Brudr(unittest.TestCase):
         finto = self.tmp / "finto"
         finto.write_text(FINTO)
         finto.chmod(0o755)
-        for nome in ("hc", "herdr-app", "less"):
+        for nome in ("hc", "herdr-app", "less", "open", "lsappinfo", "xattr"):
             (bin_ / nome).symlink_to(finto)
+        self.bin = bin_
         self.log = self.tmp / "log.jsonl"
         self.conf = self.tmp / "conf.json"
         self.tmpdir = self.tmp / "privato"
@@ -168,10 +185,37 @@ class Brudr(unittest.TestCase):
     def apri(self, terminale, conf, file=None):
         self.conf.write_text(json.dumps(conf))
         env = {"HOME": str(self.casa), "HC_TERMINAL_ID": terminale, "TMPDIR": str(self.tmpdir),
-               "FINTO_LOG": str(self.log), "FINTO_CONF": str(self.conf)}
+               "FINTO_LOG": str(self.log), "FINTO_CONF": str(self.conf),
+               "HERDR_APP_HOME": str(self.tmp / "app")}
         finestra = lambda path, fmt: self.finestre.append((path, fmt)) or 0
-        with patch.dict(os.environ, env), patch.dict(OPENER["main"].__globals__, {"finestra": finestra}):
+        finti = {"finestra": finestra, **{k: str(self.bin / k.lower()) for k in ("OPEN", "LSAPPINFO", "XATTR")}}
+        with patch.dict(os.environ, env), patch.dict(OPENER["main"].__globals__, finti):
             return OPENER["main"]([str(file or self.file)])
+
+    def terminale_mac(self, voci):
+        """The open -a Terminal calls of the fakes' log."""
+        return [v for v in voci if v["prog"] == "open" and v["argv"][:2] == ["-a", "Terminal"]]
+
+    def ascolta_finestra(self):
+        """A fake window socket at HERDR_APP_HOME; returns the lines it got."""
+        cartella = self.tmp / "app"
+        cartella.mkdir()
+        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        server.bind(str(cartella / "herdr-app.sock"))
+        server.listen()
+        self.addCleanup(server.close)
+        righe = []
+
+        def servi():
+            try:
+                conn, _ = server.accept()
+            except OSError:
+                return
+            with conn:
+                righe.append(json.loads(conn.makefile().readline()))
+                conn.sendall(b'{"ok":true}\n')
+        threading.Thread(target=servi, daemon=True).start()
+        return righe
 
     def voci(self, attendi=None, entro=15):
         """The fakes' log; with attendi, waits until a line matches it."""
@@ -228,20 +272,29 @@ class Brudr(unittest.TestCase):
 
     def test_un_terminale_altrui_col_nome_della_vista_non_si_tocca(self):
         altrui = {"name": "brudr-spf-vista", "state": "live", "labels": {}}
-        self.apri("t5", {"record": {"t5": PANNELLO, "brudr-spf-vista": altrui}})
+        self.apri("t5", {"record": {"t5": PANNELLO, "brudr-spf-vista": altrui}, "open_fallisce": True})
         self.assertEqual(len(self.finestre), 1)
         self.assertNotIn("kill", json.dumps(self.comandi(self.voci(), "hc")))
 
-    def test_senza_blocco_della_vista_finestra_e_vista_chiusa(self):
-        """Another layout shown (no spf-vista block): the window, and the view ends."""
-        self.apri("t5", {"record": {"t5": PANNELLO}, "falliscono": ["layout.select"]})
-        self.assertEqual(len(self.finestre), 1)
-        self.assertIn(["kill", "brudr-spf-vista"], self.comandi(self.voci(), "hc"))
+    def test_senza_blocco_della_vista_terminale_mac_e_vista_chiusa(self):
+        """Another layout shown (no spf-vista block): the view ends, Terminal shows the table."""
+        self.assertEqual(self.apri("t5", {"record": {"t5": PANNELLO}, "falliscono": ["layout.select"]}), 0)
+        voci = self.voci(lambda v: v["prog"] == "less")
+        self.assertEqual(self.finestre, [])
+        self.assertIn(["kill", "brudr-spf-vista"], self.comandi(voci, "hc"))
+        self.assertEqual(len(self.terminale_mac(voci)), 1)
+        self.assertEqual([a for a in self.comandi(voci) if a[:2] == ["do", "pane.split"]], [],
+                         "the panel's table never goes to an unlabeled terminal of the core")
 
-    def test_hc_che_non_parte_finestra(self):
+    def test_hc_che_non_parte_terminale_mac_poi_finestra(self):
         self.apri("t5", {"record": {"t5": PANNELLO}, "run_fallisce": True})
-        self.assertEqual(len(self.finestre), 1)
+        self.assertEqual(len(self.terminale_mac(self.voci(lambda v: v["prog"] == "less"))), 1)
+        self.assertEqual(self.finestre, [])
         self.assertNotIn("do", [a[0] for a in self.comandi(self.voci())])
+        self.log.unlink()
+        self.apri("t5", {"record": {"t5": PANNELLO}, "run_fallisce": True, "open_fallisce": True})
+        self.assertEqual(len(self.finestre), 1, "Terminal failing too: the plain window")
+        self.assertEqual(list(self.tmpdir.iterdir()), [], "script, pipe and folder gone")
 
     def test_in_una_scheda_la_vista_apre_un_terminale_accanto(self):
         self.assertEqual(self.apri("t5", {"record": {"t5": SCHEDA}, "ls": LS}), 0)
@@ -262,21 +315,85 @@ class Brudr(unittest.TestCase):
                          "q closes the new terminal, nothing to select")
 
     def test_un_altro_terminale_privato_tiene_la_finestra(self):
+        """The Private shell: the plain window as before, nothing through the core or Terminal."""
         privato = {"terminal": "t6", "labels": {"brudr.panel": "privato", "brudr.private": "1"}}
-        self.apri("t6", {"record": {"t6": privato}, "ls": LS})
+        self.apri("t6", {"record": {"t6": privato}, "ls": LS, "app": ["personal.herdr.app"]})
         self.assertEqual(len(self.finestre), 1)
-        self.assertEqual([v["argv"][0] for v in self.voci()], ["get"])
+        self.assertEqual([(v["prog"], v["argv"][0]) for v in self.voci()], [("hc", "get")])
 
-    def test_fuori_da_brudr_la_finestra(self):
-        self.apri("", {})
-        self.assertEqual(len(self.finestre), 1)
-        self.assertEqual(self.voci(), [], "no hc and no herdr-app outside brudr")
-        self.apri("t5", {"record": {}})  # the core does not know it (brudr not answering)
-        self.assertEqual(len(self.finestre), 2)
+    def test_fuori_da_brudr_con_brudr_aperto_un_terminale_di_brudr(self):
+        """Superfile in Terminal or iTerm, brudr open: a new pane in brudr's shown tab, brudr in front."""
+        alzata = self.ascolta_finestra()
+        self.assertEqual(self.apri("", {"app": ["personal.herdr.app"]}), 0)
+        voci = self.voci(lambda v: v["prog"] == "less")
+        self.assertEqual(self.finestre, [])
+        self.assertEqual(self.comandi(voci, "hc"), [], "no hc: the window starts it")
+        split = [json.loads(a[2]) for a in self.comandi(voci) if a[:2] == ["do", "pane.split"]]
+        self.assertEqual(len(split), 1)
+        self.assertNotIn("pane", split[0], "the focused pane of the shown tab")
+        self.assertEqual(split[0]["direction"], "right")
+        self.assertEqual(split[0]["argv"][1::2], ["--vista", "accanto"])
+        self.assertNotIn("segreti", json.dumps(split))
+        self.assertEqual(alzata, [{"raise": True}], "what a second launch asks: the window to the front")
+        self.assertIn(["-b", "personal.herdr.app"], self.comandi(voci, "open"))
+        self.assertEqual(self.terminale_mac(voci), [])
+        less, = [v for v in voci if v["prog"] == "less"]
+        self.assertIn("q chiude", less["testo"])
+        self.assertIn("FINTO_0000", less["testo"])
+        self.assertEqual(list(self.tmpdir.iterdir()), [], "pipe and folder gone")
 
-    def test_terminale_senza_pane_finestra(self):
-        self.apri("t7", {"record": {"t7": SCHEDA | {"terminal": "t7"}}, "ls": LS})
+    def test_porta_davanti_non_avvia_app_ferme(self):
+        """open -b only for an app that runs: open would start a stopped one."""
+        self.apri("", {"app": ["dev.herdr.app"]})
+        voci = self.voci(lambda v: v["prog"] == "less")
+        self.assertEqual(self.comandi(voci, "open"), [["-b", "dev.herdr.app"]])
+        self.log.unlink()
+        self.apri("", {"app": []})
+        voci = self.voci(lambda v: v["prog"] == "less")
+        self.assertEqual(self.comandi(voci, "open"), [])
+
+    def test_fuori_da_brudr_senza_brudr_una_finestra_di_terminale(self):
+        """brudr closed: a new window of macOS Terminal runs the view; q closes it."""
+        self.assertEqual(self.apri("", {"falliscono": ["pane.split"]}), 0)
+        voci = self.voci(lambda v: v["prog"] == "less")
+        self.assertEqual(self.finestre, [])
+        aperta, = self.terminale_mac(voci)
+        script = aperta["script"]
+        self.assertTrue(aperta["argv"][2].startswith(str(self.tmpdir) + "/spf-vista."))
+        self.assertTrue(aperta["argv"][2].endswith("/vista.command"))
+        self.assertEqual(aperta["modo"], "0o700")
+        self.assertTrue(script.startswith("#!/bin/sh\nexec "))
+        self.assertIn("--vista", script)
+        self.assertTrue(script.rstrip().endswith(" finestra"))
+        tutto = json.dumps([v for v in voci if v["prog"] != "less"])
+        self.assertNotIn("segreti", tutto, "neither the script nor an argument names the file")
+        self.assertNotIn("FINTO_0000", tutto)
+        self.assertIn(["-d", "com.apple.quarantine", aperta["argv"][2]], self.comandi(voci, "xattr"))
+        less, = [v for v in voci if v["prog"] == "less"]
+        self.assertIn("q chiude", less["testo"])
+        self.assertIn("FINTO_0000", less["testo"])
+        self.assertIn("\x1b[1;32m", less["testo"])
+        self.assertEqual(list(self.tmpdir.iterdir()), [], "script, pipe and folder gone")
+
+    def test_core_che_non_risponde_terminale_mac_senza_brudr(self):
+        """HC_TERMINAL_ID the core does not know: nothing through the core or the window."""
+        self.assertEqual(self.apri("t5", {"record": {}, "app": ["personal.herdr.app"]}), 0)
+        voci = self.voci(lambda v: v["prog"] == "less")
+        self.assertEqual(len(self.terminale_mac(voci)), 1)
+        self.assertEqual(self.comandi(voci), [])
+
+    def test_tutto_fallisce_la_finestra(self):
+        self.apri("", {"falliscono": ["pane.split"], "open_fallisce": True})
         self.assertEqual(len(self.finestre), 1)
+        self.assertEqual(list(self.tmpdir.iterdir()), [])
+
+    def test_terminale_senza_pane_un_terminale_di_brudr(self):
+        """A core terminal brudr shows in no tab: the focused pane of the shown tab."""
+        self.assertEqual(self.apri("t7", {"record": {"t7": SCHEDA | {"terminal": "t7"}}, "ls": LS}), 0)
+        voci = self.voci(lambda v: v["prog"] == "less")
+        split, = [json.loads(a[2]) for a in self.comandi(voci) if a[:2] == ["do", "pane.split"]]
+        self.assertNotIn("pane", split)
+        self.assertEqual(self.finestre, [])
 
     def test_file_troppo_grande_il_messaggio_nella_vista(self):
         grande = self.tmp / "grande.json"
@@ -285,6 +402,27 @@ class Brudr(unittest.TestCase):
         less, = [v for v in self.voci(lambda v: v["prog"] == "less") if v["prog"] == "less"]
         self.assertIn("supera 1 MiB", less["testo"])
         self.assertEqual(self.finestre, [])
+
+    def test_la_finestra_di_terminale_si_chiude_dopo_q(self):
+        """Only the view's tty, as an argument of the AppleScript, never inside it."""
+        chiudi = OPENER["chiudi_finestra"]
+        with patch("subprocess.Popen") as popen, patch("os.ttyname", return_value="/dev/ttys012"):
+            chiudi()
+        argv, = popen.call_args.args
+        self.assertEqual(argv[:2], ["/usr/bin/osascript", "-e"])
+        self.assertEqual(argv[3:], ["/dev/ttys012"])
+        self.assertNotIn("ttys012", argv[2])
+        self.assertIn('tell application "Terminal"', argv[2])
+        self.assertIn("not busy", argv[2])
+        self.assertTrue(popen.call_args.kwargs["start_new_session"])
+        for strano in ('/dev/ttys1" & do shell script "x', "/dev/null"):
+            with self.subTest(tty=strano), patch("subprocess.Popen") as popen, \
+                    patch("os.ttyname", return_value=strano):
+                chiudi()
+                popen.assert_not_called()
+        with patch("subprocess.Popen") as popen, patch("os.ttyname", side_effect=OSError):
+            chiudi()
+        popen.assert_not_called()
 
     def test_vista_senza_dati_dice_perche(self):
         """A pipe nobody writes: after the wait, a message, and back to Superfile on q."""
