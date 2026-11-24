@@ -82,8 +82,9 @@ export default class Pannelli extends View {
         try { comando = await nextCommand(); } catch { return; } // the app is shutting down
         const s = schedaDi(comando);
         if (!s) continue;
-        const space = spaces().find((x) => x.active)?.id;
-        try { await apriScheda(s, { run, panes, space, sleep: (ms) => cx.sleep(ms) }); }
+        const attivo = spaces().find((x) => x.active);
+        const h = { run, panes, focused, space: attivo?.id, remoto: Boolean(attivo?.machine), sleep: (ms) => cx.sleep(ms) };
+        try { await apriScheda(s, h); }
         catch (e) { notify({ title: "pannelli", body: `Nuova scheda ${s.nome}: ${e?.message ?? e}`, level: "error" }); }
       }
     });
@@ -394,7 +395,10 @@ export default class Pannelli extends View {
       .child(h_flex().id("tab-scroll").flex_1().min_w(0).h_full().items_center().gap(3).overflow_x_scrollbar().track_scroll(this.scroll)
         .on_size_change((_size, cx) => { if (active >= 0) { this.scroll.scroll_to_item(active); cx.notify(); } })
         .children(shown.map(item)))
-      .child(button("tab-new", "+", () => openOverlay({ mod: "nuova-scheda", kind: "popup", width: 250, height: 330 })))
+      .child(button("tab-new", "+", () => spaces().find((x) => x.active)?.machine
+        // A remote space keeps Herdr's menu: the rain and the profiles are this Mac's.
+        ? openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })
+        : openOverlay({ mod: "nuova-scheda", kind: "popup", width: 250, height: 330 })))
       .when(Boolean(msg), el => el.child(div().id("pannelli-errore").max_w(220).flex_none().text_size(11).text_color(t.blocked).truncate().child(msg)))
       .children(PANNELLI.map(pulsante))
       .when(w?.buttons, el => el.child(button("minimize", w.platform === "windows" ? svg("mods/tabs/win-min.svg").size(16) : "−", () => run("window.minimize")))

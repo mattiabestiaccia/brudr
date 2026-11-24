@@ -4,8 +4,10 @@
 //
 // The fake keeps one row of panes per tab and does what src/layout.rs does with
 // it: Node::split (wrap a lone pane in a row with both sizes unset, or halve the
-// target's weight in its row) and resize_plan (the target gets its share, the
-// others split the rest by their weights). Widths on screen come from the weights.
+// target's weight in its row), swap, and resize_plan (the target gets its share,
+// the others split the rest by their weights). Widths on screen come from the weights.
+// As in brudr, run() only queues: the commands apply, and panes() changes, when
+// the mod waits (sleep).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { SCHEDE, LATO, PIOGGIA, schedaDi, apriScheda } from "./mods/pannelli/schede.js";
@@ -19,6 +21,11 @@ class Brudr {
     this.chiamate = [];
     this.fuoco = "p0";
     this.disegnato = true; // a new tab is measured only after it is drawn (sleep)
+    this.coda = [];
+    this.mostrata = "tb0";
+  }
+  focused() {
+    return { tab: this.mostrata, pane: this.fuoco };
   }
   panes() {
     return this.tabs.flatMap((t) => t.row.map((p) => ({ pane: p.pane, tab: t.id, focused: p.pane === this.fuoco })));
@@ -33,10 +40,16 @@ class Brudr {
   }
   run(nome, a = {}) {
     this.chiamate.push([nome, structuredClone(a)]);
+    this.coda.push([nome, structuredClone(a)]);
+    return null;
+  }
+  applica(nome, a) {
     if (nome === "tab.new") {
       const p = { pane: `p${this.n++}`, w: null, argv: a.argv ?? null };
-      this.tabs.push({ id: `tb${this.n++}`, name: a.name ?? "", space: a.space, row: [p] });
+      const id = `tb${this.n++}`;
+      this.tabs.push({ id, name: a.name ?? "", space: a.space, row: [p] });
       this.fuoco = p.pane;
+      this.mostrata = id;
       this.disegnato = false;
     } else if (nome === "pane.split") {
       assert.equal(a.direction, "right");
@@ -67,18 +80,26 @@ class Brudr {
       for (const i of altri) nuovi[i] = (resto * pesi[i]) / somma;
       const scala = pesi.reduce((s, x) => s + x, 0) / pool;
       riga.forEach((p, i) => { p.w = nuovi[i] * scala; });
+    } else if (nome === "pane.swap") {
+      const riga = this.riga(a.pane);
+      const i = riga.findIndex((p) => p.pane === a.pane), j = riga.findIndex((p) => p.pane === a.target);
+      assert.ok(i >= 0 && j >= 0, "swap in one row");
+      [riga[i], riga[j]] = [riga[j], riga[i]];
     } else if (nome === "pane.focus") {
       this.fuoco = a.pane;
     } else {
       throw new Error(`unexpected command ${nome}`);
     }
-    return null;
   }
   host() {
     return {
       run: (n, a) => this.run(n, a),
       panes: () => this.panes(),
-      sleep: async () => { this.disegnato = true; },
+      focused: () => this.focused(),
+      sleep: async () => {
+        for (const [n, a] of this.coda.splice(0)) this.applica(n, a);
+        this.disegnato = true;
+      },
       space: "sp1",
     };
   }
@@ -87,11 +108,13 @@ class Brudr {
 for (const s of SCHEDE) {
   test(`${s.id}: rain, ${s.nome}, rain, with equal sides`, async () => {
     const b = new Brudr();
-    const [sx, centro, dx] = await apriScheda(s, b.host());
+    const h = b.host();
+    const [sx, centro, dx] = await apriScheda(s, h);
+    await h.sleep(); // the last queued commands
     const tab = b.tabs.at(-1);
     assert.deepEqual(tab.row.map((p) => p.pane), [sx, centro, dx]);
     assert.deepEqual(tab.row[0].argv, PIOGGIA);
-    assert.deepEqual(tab.row[1].argv, s.argv);
+    assert.deepEqual(tab.row[1].argv, s.argv); // through tab.new: Herdr's agent launch
     assert.deepEqual(tab.row[2].argv, PIOGGIA);
     const quote = b.px(tab.row).map((x) => x / LARGHEZZA);
     assert.ok(Math.abs(quote[0] - LATO) < 1e-9, `left ${quote[0]}`);
@@ -122,6 +145,23 @@ test("a step that makes no pane stops before the next one", async () => {
   const b = new Brudr();
   const h = b.host();
   h.run = (n, a) => (n === "pane.split" ? null : b.run(n, a));
-  await assert.rejects(apriScheda(SCHEDE[1], h), /middle pane/);
+  await assert.rejects(apriScheda(SCHEDE[1], h), /right pane: no new pane/);
   assert.deepEqual(b.chiamate.map(([n]) => n), ["tab.new"]);
+});
+
+test("another tab shown meanwhile: no resize, the focus stays there", async () => {
+  const b = new Brudr();
+  const h = b.host();
+  const dorme = h.sleep;
+  let n = 0;
+  h.sleep = async () => { await dorme(); if (++n === 3) b.mostrata = "tb0"; };
+  await apriScheda(SCHEDE[0], h);
+  assert.deepEqual(b.chiamate.map(([c]) => c), ["tab.new", "pane.split", "pane.split", "pane.swap"]);
+});
+
+test("a remote space gets Herdr's plain tab", async () => {
+  const b = new Brudr();
+  const h = { ...b.host(), remoto: true };
+  assert.equal(await apriScheda(SCHEDE[1], h), null);
+  assert.deepEqual(b.chiamate, [["tab.new", { space: "sp1" }]]);
 });
