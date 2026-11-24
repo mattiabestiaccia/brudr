@@ -14,6 +14,7 @@ export const PANNELLI = [
   { child: "neovim", tipo: "nvim", nome: "Neovim", privato: true },
   { child: "changes", tipo: "hunk", nome: "Hunk", privato: false, segue: true },
   { child: "quota", tipo: "quota", nome: "Quota", privato: false },
+  { child: "tasti", tipo: "tasti", nome: "Tasti", privato: false },
   { child: "privato", tipo: "privato", nome: "Private", privato: true },
   { child: "browser", tipo: "web", nome: "Browser", privato: false, web: { url: "https://example.com/" } },
 ];

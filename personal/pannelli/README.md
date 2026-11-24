@@ -1,8 +1,8 @@
 ---
 type: personal-build
-title: Pannelli laterali di brudr (Superfile, Neovim, Hunk, Quota, Private, Browser)
+title: Pannelli laterali di brudr (Superfile, Neovim, Hunk, Quota, Tasti, Private, Browser)
 status: da provare dal vivo
-updated: 2026-11-23
+updated: 2026-11-24
 description: Pannelli a terminale nella colonna destra di brudr; Superfile, Neovim e Private sono privati, il lettore dei terminali degli agenti non li legge.
 ---
 
@@ -16,6 +16,7 @@ Decisioni del 23 novembre 2026 (D1 blocchi del layout per nome, D2 Superfile non
 | Neovim | `nvim` senza swap, undo, shada, backup | sì | no (D3) |
 | Hunk (al posto di Changes) | `hunk diff --watch` | no | sì, come Changes |
 | Quota | `quota-brs --tui` (`quota-axi --tui` se manca) | no | no |
+| Tasti | `brudr-tasti`: i tasti dell'utente in tutti i programmi, cercati con fzf | no | no |
 | Private | `fish --private` | sì | no |
 | Browser | WebKit nativo (macOS 14+) | no | no |
 
@@ -25,17 +26,20 @@ Privato vuol dire: il terminale porta l'etichetta di core `brudr.private=1` dall
 
 | File | Cosa |
 | --- | --- |
-| `mods/pannelli/` | mod: barra in alto (copia di `tabs`, con sei pulsanti al posto di Files e Changes) e custode dei terminali; `blocchi.js` ha i pannelli e la riparazione del layout |
+| `mods/pannelli/` | mod: barra in alto (copia di `tabs`, con sette pulsanti al posto di Files e Changes) e custode dei terminali; `blocchi.js` ha i pannelli e la riparazione del layout |
 | `brudr-pannello` | il programma di ogni pannello; non finisce mai da solo |
 | `spf-apri` | apertura in Obsidian, Zed o nella vista Nushell per i tipi configurati |
+| `brudr-tasti` | il programma del pannello Tasti: indice dei tasti (`genera`), ricerca con fzf e anteprima con bat |
+| `tasti/` | liste a mano dalle pagine ufficiali, una per programma, con indirizzo, copia in KB e data; `tasti/estrai-kb` le riscrive dalle pagine salvate |
+| `test_tasti.py` | prove del pannello Tasti con una casa finta: `python3 -B personal/pannelli/test_tasti.py` |
 | `crea-layout` | fa `brudr-pannelli.json` da una copia di `herdr-transparent.json` |
 | `test_pannelli.py` | prove senza Herdr: `python3 personal/pannelli/test_pannelli.py` |
 | `prova_mod.mjs` | la mod vera in node, contro un brudr e un core finti (usata dalle prove) |
 
 ## Come funziona
 
-- **Layout.** `brudr-pannelli` è il layout trasparente con due cambi: lo stack `panel-body` ha un blocco web e cinque blocchi `{"terminal": "brudr-<tipo>"}`, per nome (il core accetta un nome al posto dell'indirizzo, quindi il layout non cambia quando cambia l'indirizzo), senza intestazione e senza fondo proprio (Private ha il grigio degli altri); il blocco `tabs` usa la mod `pannelli` al posto di `tabs`. Gli id `files` e `changes` restano. `herdr-transparent` resta com'è.
-- **Mod `pannelli`.** È la barra in alto: le schede come la mod `tabs` di Herdr (copiata, `defaults/` non cambia) e, al posto di Files e Changes, i pulsanti Superfile, Neovim, Hunk, Quota, Private e Browser (un puntino segna i privati). Un clic mostra il pannello, un secondo clic lo nasconde. Come `tabs`, ricorda per ogni spazio il pannello aperto. Quando mostra un pannello a terminale senza il suo terminale, lo crea:
+- **Layout.** `brudr-pannelli` è il layout trasparente con due cambi: lo stack `panel-body` ha un blocco web e sei blocchi `{"terminal": "brudr-<tipo>"}`, per nome (il core accetta un nome al posto dell'indirizzo, quindi il layout non cambia quando cambia l'indirizzo), senza intestazione e senza fondo proprio (Private ha il grigio degli altri); il blocco `tabs` usa la mod `pannelli` al posto di `tabs`. Gli id `files` e `changes` restano. `herdr-transparent` resta com'è.
+- **Mod `pannelli`.** È la barra in alto: le schede come la mod `tabs` di Herdr (copiata, `defaults/` non cambia) e, al posto di Files e Changes, i pulsanti Superfile, Neovim, Hunk, Quota, Tasti, Private e Browser (un puntino segna i privati). Un clic mostra il pannello, un secondo clic lo nasconde. Come `tabs`, ricorda per ogni spazio il pannello aperto. Quando mostra un pannello a terminale senza il suo terminale, lo crea:
   `hc run --bg --json --no-parent --rm --name brudr-<tipo> --label brudr.panel=<tipo> [--label brudr.private=1] --cwd <cartella> -- ~/bin/brudr-pannello <tipo>`.
   Poi nasconde e rimostra il pannello: un blocco agganciato a un nome che non esisteva resta spento e non riprova. Un terminale che ha il nome di un pannello senza le sue etichette non viene mostrato (avviso e pannello nascosto).
 - **Browser.** Si apre su `https://example.com/`. Scrivi il sito nella barra del pannello e premi Invio. Passare a un altro pannello o chiuderlo con il pulsante non interrompe la pagina; lasciare il layout la chiude. Non crea terminali, non ha pallino, non è una finestra privata e conserva cookie e dati in un profilo brudr, non Safari. Il WebKit nativo può coprire i popup di Herdr che cadono nella sua area.
@@ -45,6 +49,11 @@ Privato vuol dire: il terminale porta l'etichetta di core `brudr.private=1` dall
 - **Superfile.** La configurazione dell'utente (`~/Library/Application Support/superfile/config.toml`) copiata nel `TMPDIR` privato a ogni avvio; il pannello mantiene la larghezza della sidebar e l'impostazione di zoxide configurate dall'utente, chiude l'anteprima dei file all'avvio, spegne l'anteprima d'immagini (miniature su disco) e il controllo aggiornamenti, e usa `$EDITOR`.
 - **Tasti di Superfile.** `E` ed `e` aprono il file in Neovim; `alt+d` apre la cartella con l'editor per cartelle. Il pannello legge gli stessi tasti del Superfile da terminale ma usa il collegamento privato a Neovim. Se manca quel collegamento, il pannello non avvia Superfile. `l`, `L` e Invio entrano nelle cartelle e aprono i file. Le estensioni configurate aprono Obsidian (ogni Markdown, anche fuori da un vault: `open -a Obsidian <file>`, da Obsidian 1.14.4), Zed (codice), o una tabella Nushell in una finestra separata, in sola lettura (JSON, JSONC, TOML, YAML e XML, fino a 1 MiB). I tipi non elencati seguono la loro app predefinita di macOS. L'apertura di un file in Zed o Obsidian può lasciare tracce in quelle app.
 - **Footer di Superfile.** Il pannello usa la configurazione privata e imposta `show_panel_footer_info = true` senza cambiare il file dell'utente. Lo stato del footer dell'interfaccia, alternato da Superfile con `alt+f` e salvato in `toggleFooter`, non è un'opzione di `config.toml`: il pannello non lo forza e conserva lo stato condiviso salvato da Superfile.
+- **Tasti.** `brudr-tasti` mostra in fzf una riga per tasto: programma, tasto, azione. Il campo di ricerca prende tasto, programma o azione (parole intere, `--exact`); Tab e Maiusc+Tab scorrono il filtro per programma; Invio mostra o nasconde la scheda (fonte, origine, conflitti, chi riceve il tasto mandato dalla Kyria), colorata da bat. I tasti si scrivono in un modo solo: modificatori nell'ordine del Mac `ctrl+alt+shift+cmd`, poi il tasto (`ctrl+alt+h`, `alt+shift+cmd+left`); una sequenza ha gli accordi separati da uno spazio. `*` segna un tasto dell'utente, `!` un conflitto. L'indice è `~/.config/herdr-app/data/pannelli/tasti.json`: solo tasti, azioni e percorsi o indirizzi delle fonti. All'apertura il programma confronta data e misura dei file di ogni fonte e rilegge solo quelle cambiate (Neovim in modalità headless, senza stato su disco, circa 5 secondi); Esc chiude fzf e `brudr-pannello` lo riapre, quindi un tasto cambiato compare alla riapertura. `brudr-tasti controlla` elenca conflitti e avvisi.
+  - Fonti lette (D): Herdr (`keys.json` e i predefiniti), Claude Code (`~/.claude-brus/keybindings.json`), Pi (`keybindings.json` sopra la sua documentazione locale), Codex (`tui.keymap` in `~/.codex/config.toml`), Claude Desktop (solo `quickEntryShortcut`), Neovim, Superfile (`hotkeys.toml`), Fish, Nushell, Obsidian (`hotkeys.json` dei vault personali; i vault in `~/Work` non si aprono), Zed, macOS (scorciatoie di sistema attive), Kyria (la pagina `layer/tastiera-layer.html`, fatta dal `.vil` attuale), Hammerspoon, Rectangle.
+  - Liste a mano (M, `tasti/`): Chrome, YouTube e macOS complete; Claude Code, Hunk, Codex, Codex desktop, Obsidian (modifica del testo), Claude Desktop, Lavish (la mappa approvata il 10 novembre 2026, mostrata come attiva). Una lista più vecchia di 90 giorni dà un avviso.
+  - Work: se c'è, `~/.config/herdr-app/data/pannelli/tasti-work.json`, scritto da un'altra sessione: `{"versione": 1, "scritto": "AAAA-MM-GG", "voci": [{"programma", "tasto", "azione", "fonte"}]}`, solo testo, al massimo 5000 voci e 300 caratteri per campo.
+  - Conflitti: un tasto globale (macOS, Hammerspoon, Rectangle, quick entry di Claude Desktop) lo prende prima di ogni altro programma; i tasti globali di Herdr non arrivano ai programmi nei suoi terminali. I tasti della Kyria non sono conflitti: la scheda dice chi li riceve.
 - **Hunk segue lo spazio.** La mod scrive la cartella dello spazio (o del pane focalizzato) in `~/.config/herdr-app/data/pannelli/hunk.dir`; `brudr-pannello` la controlla ogni secondo e riavvia hunk lì. Mai la cartella di un blocco del layout, quindi mai quella di un pannello privato. Fuori da un repository Git hunk non parte: il pannello scrive «Nessun repository Git in <cartella>» una volta e aspetta che lo spazio passi a un repository.
 
 ## Installazione
@@ -58,11 +67,14 @@ Con un passo di installazione locale (la home di Herdr e `~/bin` sono chiuse agl
 | `~/.config/brudr-pannelli/tmp/` | cartella 0700 |
 | `~/.config/herdr-app/mods/pannelli/` | copia della mod |
 | `~/.config/herdr-app/layouts/brudr-pannelli.json` | `crea-layout` sul `herdr-transparent.json` vivo |
+| `~/bin/brudr-tasti` | copia |
+| `~/.config/herdr-app/data/pannelli/tasti/` | le liste a mano (`tasti/*.json`) e `herdr-predefiniti.json` (copia di `defaults/keys.macos.json`) |
 
 Si sceglie con il cambio layout: `cmd-shift-l` sul Mac, `ctrl-shift-l` su Linux.
 
 ## Limiti noti
 
 - **Prove dal vivo** (la sandbox degli agenti non apre terminali): da fare a mano.
+- **Tasti che mancano.** Senza una lista ufficiale leggibile: i tasti predefiniti di Zed (`default-macos.json`), di Rectangle (solo un'immagine nel README; il pannello ha le due scorciatoie che l'utente ha salvato), dei comandi di Obsidian (pagina Hotkeys, HTTP 503), del TUI di Codex e dell'app Claude Desktop (oltre a quick entry). Le azioni delle liste ufficiali restano in inglese.
 - **Un pannello tolto apposta dal layout torna.** La mod rimette ogni blocco di pannello che ha visto sparire nella sessione: per toglierne uno si cambia anche la mod.
 - **Cosa resta fuori dal pannello privato.** Il contenuto dello schermo non esce dal lettore dei terminali degli agenti, ma restano le vie che questo lavoro non chiude: lo stato del core su disco (`~/.local/state/herdr-core`), `registro.fish` nella shell privata, gli undo e gli swap già scritti da Neovim fuori dal pannello, il socket dell'app e la home di Herdr per Pi. Le chiude il lavoro a parte sulle chiusure (D4, D6).

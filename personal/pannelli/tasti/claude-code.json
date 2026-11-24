@@ -1,0 +1,811 @@
+{
+ "programma": "Claude Code",
+ "livello": "terminale",
+ "origine": "predefinito",
+ "fonte": "https://code.claude.com/docs/en/keybindings",
+ "copia": "~/KB/keybindings/claude-code-keybindings.md",
+ "data": "2026-11-23",
+ "nota": "meta è Option sul Mac",
+ "voci": [
+  {
+   "tasto": "ctrl+c",
+   "azione": "Cancel current operation (app:interrupt)",
+   "contesto": "Global"
+  },
+  {
+   "tasto": "ctrl+d",
+   "azione": "Exit Claude Code. Press twice within 800ms to confirm (app:exit)",
+   "contesto": "Global"
+  },
+  {
+   "tasto": "ctrl+t",
+   "azione": "Toggle visibility of Claude's to-do checklist. This is not the /tasks background-task view (app:toggleTodos)",
+   "contesto": "Global"
+  },
+  {
+   "tasto": "ctrl+o",
+   "azione": "Toggle verbose transcript (app:toggleTranscript)",
+   "contesto": "Global"
+  },
+  {
+   "tasto": "ctrl+r",
+   "azione": "Open history search (history:search)",
+   "contesto": "History actions"
+  },
+  {
+   "tasto": "up",
+   "azione": "Previous history item (history:previous)",
+   "contesto": "History actions"
+  },
+  {
+   "tasto": "down",
+   "azione": "Next history item (history:next)",
+   "contesto": "History actions"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Cancel current input (chat:cancel)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+l",
+   "azione": "Force a full screen redraw, preserving input and conversation (chat:clearInput)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "cmd+k",
+   "azione": "Same as chat:clearInput. See Clear the conversation for how Cmd+K behaves on iTerm2 (chat:clearScreen)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+x ctrl+k",
+   "azione": "Stop all running background subagents in this session and turn off artifact auto-replies for the rest of it. Press the shortcut twice within 3 seconds to confirm. You can press it while a background subagent's permission prompt is open (chat:killAgents)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "shift+tab",
+   "azione": "Cycle permission modes (chat:cycleMode)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "alt+p",
+   "azione": "Open model picker (chat:modelPicker)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "alt+o",
+   "azione": "Toggle fast mode (chat:fastMode)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "alt+t",
+   "azione": "Toggle extended thinking (chat:thinkingToggle)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Submit message (chat:submit)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+x enter",
+   "azione": "Submit the message, marked to wait its turn: while Claude is working, Claude Code queues it and never interrupts the turn. Unlike chat:submit, it submits the draft even while an autocomplete suggestion is highlighted. Requires v2.1.247 or later (chat:queueSubmit)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+enter",
+   "azione": "Send your queued messages, and your draft with them, right away. When Claude Code sends what you queued covers what happens to the turn Claude is working on. When nothing is running, the key submits the draft, and in shell mode it only queues the command. Terminals that don't report extended keys deliver Ctrl+Enter as plain Enter, so Ctrl+X Ctrl+S is the binding that works in any terminal. Requires v2.1.275 or later (chat:sendNow)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+x ctrl+s",
+   "azione": "Send your queued messages, and your draft with them, right away. When Claude Code sends what you queued covers what happens to the turn Claude is working on. When nothing is running, the key submits the draft, and in shell mode it only queues the command. Terminals that don't report extended keys deliver Ctrl+Enter as plain Enter, so Ctrl+X Ctrl+S is the binding that works in any terminal. Requires v2.1.275 or later (chat:sendNow)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+j",
+   "azione": "Insert a newline without submitting (chat:newline)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+_",
+   "azione": "Undo last action (chat:undo)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+shift+-",
+   "azione": "Undo last action (chat:undo)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+g",
+   "azione": "Open in external editor. The agent view dispatch input follows this action's single-keystroke bindings too (chat:externalEditor)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+x ctrl+e",
+   "azione": "Open in external editor. The agent view dispatch input follows this action's single-keystroke bindings too (chat:externalEditor)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+s",
+   "azione": "Stash current prompt (chat:stash)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "ctrl+v",
+   "azione": "Paste image from clipboard. On WSL, both shortcuts are bound by default (chat:imagePaste)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Accept suggestion (autocomplete:accept)",
+   "contesto": "Autocomplete"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Dismiss menu (autocomplete:dismiss)",
+   "contesto": "Autocomplete"
+  },
+  {
+   "tasto": "up",
+   "azione": "Previous suggestion (autocomplete:previous)",
+   "contesto": "Autocomplete"
+  },
+  {
+   "tasto": "down",
+   "azione": "Next suggestion (autocomplete:next)",
+   "contesto": "Autocomplete"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Confirm action (confirm:yes)",
+   "contesto": "Confirmation"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Decline action (confirm:no)",
+   "contesto": "Confirmation"
+  },
+  {
+   "tasto": "up",
+   "azione": "Previous option (confirm:previous)",
+   "contesto": "Confirmation"
+  },
+  {
+   "tasto": "down",
+   "azione": "Next option (confirm:next)",
+   "contesto": "Confirmation"
+  },
+  {
+   "tasto": "tab",
+   "azione": "In the /fast dialog, turn fast mode on or off (confirm:nextField)",
+   "contesto": "Confirmation"
+  },
+  {
+   "tasto": "space",
+   "azione": "Toggle selection (confirm:toggle)",
+   "contesto": "Confirmation"
+  },
+  {
+   "tasto": "shift+tab",
+   "azione": "On a file permission prompt, closes an open comment field; with no field open, selects the option that allows the action for the rest of the session, when the prompt offers that option (confirm:cycleMode)",
+   "contesto": "Confirmation"
+  },
+  {
+   "tasto": "ctrl+e",
+   "azione": "Toggle show all content (transcript:toggleShowAll)",
+   "contesto": "Transcript"
+  },
+  {
+   "tasto": "q",
+   "azione": "Exit transcript view (transcript:exit)",
+   "contesto": "Transcript"
+  },
+  {
+   "tasto": "ctrl+c",
+   "azione": "Exit transcript view (transcript:exit)",
+   "contesto": "Transcript"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Exit transcript view (transcript:exit)",
+   "contesto": "Transcript"
+  },
+  {
+   "tasto": "ctrl+r",
+   "azione": "Next match (historySearch:next)",
+   "contesto": "HistorySearch"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Accept selection (historySearch:accept)",
+   "contesto": "HistorySearch"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Accept selection (historySearch:accept)",
+   "contesto": "HistorySearch"
+  },
+  {
+   "tasto": "ctrl+c",
+   "azione": "Cancel search (historySearch:cancel)",
+   "contesto": "HistorySearch"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Execute selected command (historySearch:execute)",
+   "contesto": "HistorySearch"
+  },
+  {
+   "tasto": "ctrl+s",
+   "azione": "Cycle scope: session, project, everywhere (historySearch:cycleScope)",
+   "contesto": "HistorySearch"
+  },
+  {
+   "tasto": "ctrl+b",
+   "azione": "Background current task (task:background)",
+   "contesto": "Task"
+  },
+  {
+   "tasto": "ctrl+x ctrl+b",
+   "azione": "Background current task (task:background)",
+   "contesto": "Task"
+  },
+  {
+   "tasto": "ctrl+t",
+   "azione": "Toggle syntax highlighting (theme:toggleSyntaxHighlighting)",
+   "contesto": "ThemePicker"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Close help menu (help:dismiss)",
+   "contesto": "Help"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Next tab (tabs:next)",
+   "contesto": "Tabs"
+  },
+  {
+   "tasto": "right",
+   "azione": "Next tab (tabs:next)",
+   "contesto": "Tabs"
+  },
+  {
+   "tasto": "shift+tab",
+   "azione": "Previous tab (tabs:previous)",
+   "contesto": "Tabs"
+  },
+  {
+   "tasto": "left",
+   "azione": "Previous tab (tabs:previous)",
+   "contesto": "Tabs"
+  },
+  {
+   "tasto": "right",
+   "azione": "Next attachment (attachments:next)",
+   "contesto": "Attachments"
+  },
+  {
+   "tasto": "left",
+   "azione": "Previous attachment (attachments:previous)",
+   "contesto": "Attachments"
+  },
+  {
+   "tasto": "backspace",
+   "azione": "Remove selected attachment (attachments:remove)",
+   "contesto": "Attachments"
+  },
+  {
+   "tasto": "delete",
+   "azione": "Remove selected attachment (attachments:remove)",
+   "contesto": "Attachments"
+  },
+  {
+   "tasto": "down",
+   "azione": "Exit attachment navigation (attachments:exit)",
+   "contesto": "Attachments"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Exit attachment navigation (attachments:exit)",
+   "contesto": "Attachments"
+  },
+  {
+   "tasto": "right",
+   "azione": "Next footer item (footer:next)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "left",
+   "azione": "Previous footer item (footer:previous)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "up",
+   "azione": "Navigate up in footer (deselects at top) (footer:up)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "ctrl+p",
+   "azione": "Navigate up in footer (deselects at top) (footer:up)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "down",
+   "azione": "Navigate down in footer (footer:down)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "ctrl+n",
+   "azione": "Navigate down in footer (footer:down)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Open selected footer item (footer:openSelected)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Clear footer selection (footer:clearSelection)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "x",
+   "azione": "Stop the selected agent or workflow, or dismiss its row if it's no longer running (footer:close)",
+   "contesto": "Footer"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Close diff viewer; from the detail view, returns to the file list instead (diff:dismiss)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "left",
+   "azione": "Previous diff source (diff:previousSource)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "right",
+   "azione": "Next diff source (diff:nextSource)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "up",
+   "azione": "Previous file in the file list; scroll up one line in the detail view (diff:previousFile)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "K",
+   "azione": "Previous file in the file list; scroll up one line in the detail view (diff:previousFile)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "down",
+   "azione": "Next file in the file list; scroll down one line in the detail view (diff:nextFile)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "J",
+   "azione": "Next file in the file list; scroll down one line in the detail view (diff:nextFile)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "pageup",
+   "azione": "Scroll up half a viewport (scroll:pageUp)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "pagedown",
+   "azione": "Scroll down half a viewport (scroll:pageDown)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "shift+space",
+   "azione": "Scroll up a full viewport (scroll:fullPageUp)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "B",
+   "azione": "Scroll up a full viewport (scroll:fullPageUp)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "space",
+   "azione": "Scroll down a full viewport (scroll:fullPageDown)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "G",
+   "azione": "Jump to the top (scroll:top)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "home",
+   "azione": "Jump to the top (scroll:top)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "shift+g",
+   "azione": "Jump to the bottom (scroll:bottom)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "end",
+   "azione": "Jump to the bottom (scroll:bottom)",
+   "contesto": "Diff actions"
+  },
+  {
+   "tasto": "ctrl+x B",
+   "azione": "Cycle the panel's comparison base: this session, uncommitted, then branch (app:cycleDiffBase)",
+   "contesto": "Diff panel actions"
+  },
+  {
+   "tasto": "ctrl+up",
+   "azione": "Scroll the panel's file list up when it overflows (app:diffFileListUp)",
+   "contesto": "Diff panel actions"
+  },
+  {
+   "tasto": "alt+up",
+   "azione": "Scroll the panel's file list up when it overflows (app:diffFileListUp)",
+   "contesto": "Diff panel actions"
+  },
+  {
+   "tasto": "ctrl+down",
+   "azione": "Scroll the panel's file list down when it overflows (app:diffFileListDown)",
+   "contesto": "Diff panel actions"
+  },
+  {
+   "tasto": "alt+down",
+   "azione": "Scroll the panel's file list down when it overflows (app:diffFileListDown)",
+   "contesto": "Diff panel actions"
+  },
+  {
+   "tasto": "left",
+   "azione": "Decrease effort level (modelPicker:decreaseEffort)",
+   "contesto": "ModelPicker"
+  },
+  {
+   "tasto": "right",
+   "azione": "Increase effort level (modelPicker:increaseEffort)",
+   "contesto": "ModelPicker"
+  },
+  {
+   "tasto": "s",
+   "azione": "Apply highlighted model to this session only (modelPicker:thisSessionOnly)",
+   "contesto": "ModelPicker"
+  },
+  {
+   "tasto": "left",
+   "azione": "Move the slider to the next lower effort level. Requires v2.1.284 or later (effortSlider:decreaseEffort)",
+   "contesto": "EffortSlider"
+  },
+  {
+   "tasto": "right",
+   "azione": "Move the slider to the next higher effort level. Requires v2.1.284 or later (effortSlider:increaseEffort)",
+   "contesto": "EffortSlider"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Turn ultracode on or off for this session, when the slider offers it. Requires v2.1.284 or later (effortSlider:toggleUltracode)",
+   "contesto": "EffortSlider"
+  },
+  {
+   "tasto": "s",
+   "azione": "Apply the focused effort level to this session only. Requires v2.1.257 or later (effortSlider:thisSessionOnly)",
+   "contesto": "EffortSlider"
+  },
+  {
+   "tasto": "down",
+   "azione": "Next option (select:next)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "J",
+   "azione": "Next option (select:next)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "ctrl+n",
+   "azione": "Next option (select:next)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "up",
+   "azione": "Previous option (select:previous)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "K",
+   "azione": "Previous option (select:previous)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "ctrl+p",
+   "azione": "Previous option (select:previous)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "pageup",
+   "azione": "Move up one page of options (select:pageUp)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "pagedown",
+   "azione": "Move down one page of options (select:pageDown)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "home",
+   "azione": "First option (select:first)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "end",
+   "azione": "Last option (select:last)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Accept selection (select:accept)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Cancel selection (select:cancel)",
+   "contesto": "Select"
+  },
+  {
+   "tasto": "space",
+   "azione": "Toggle plugin selection (plugin:toggle)",
+   "contesto": "Plugin"
+  },
+  {
+   "tasto": "I",
+   "azione": "Install selected plugins (plugin:install)",
+   "contesto": "Plugin"
+  },
+  {
+   "tasto": "F",
+   "azione": "Favorite the selected plugin so it sorts near the top of the Installed tab (plugin:favorite)",
+   "contesto": "Plugin"
+  },
+  {
+   "tasto": "ctrl+x ctrl+a",
+   "azione": "Collapse the band to a one-row hint, or expand it again (abovePrompt:toggle)",
+   "contesto": "Above-prompt actions"
+  },
+  {
+   "tasto": "ctrl+x tab",
+   "azione": "Move keyboard focus into the band, then to each open pane, and from the last pane back to the prompt (abovePrompt:focus)",
+   "contesto": "Above-prompt actions"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Focus the next control (abovePrompt:next)",
+   "contesto": "Above-prompt actions"
+  },
+  {
+   "tasto": "shift+tab",
+   "azione": "Focus the previous control (abovePrompt:previous)",
+   "contesto": "Above-prompt actions"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Press the focused button, submit the focused input field, or pick the highlighted option in a select (abovePrompt:press)",
+   "contesto": "Above-prompt actions"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Return keyboard focus to the prompt (abovePrompt:leave)",
+   "contesto": "Above-prompt actions"
+  },
+  {
+   "tasto": "down",
+   "azione": "Highlight the next option in a focused select (abovePrompt:highlightNext)",
+   "contesto": "Above-prompt actions"
+  },
+  {
+   "tasto": "up",
+   "azione": "Highlight the previous option in a focused select (abovePrompt:highlightPrevious)",
+   "contesto": "Above-prompt actions"
+  },
+  {
+   "tasto": "up",
+   "azione": "Scroll the pane up when it has more rows than it can show (pane:scrollUp)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "down",
+   "azione": "Scroll the pane down when it has more rows than it can show (pane:scrollDown)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "pageup",
+   "azione": "Scroll the pane up a page (pane:pageUp)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "pagedown",
+   "azione": "Scroll the pane down a page (pane:pageDown)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "home",
+   "azione": "Jump to the top of the pane (pane:top)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "end",
+   "azione": "Jump to the bottom of the pane (pane:bottom)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "ctrl+x left",
+   "azione": "Give the pane more room: width when it sits beside the transcript, height when it sits above the prompt (pane:grow)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "ctrl+x up",
+   "azione": "Give the pane more room: width when it sits beside the transcript, height when it sits above the prompt (pane:grow)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "ctrl+x right",
+   "azione": "Give the pane less room: width when it sits beside the transcript, height when it sits above the prompt (pane:shrink)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "ctrl+x down",
+   "azione": "Give the pane less room: width when it sits beside the transcript, height when it sits above the prompt (pane:shrink)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "ctrl+x X",
+   "azione": "Close the pane (pane:close)",
+   "contesto": "Pane actions"
+  },
+  {
+   "tasto": "/",
+   "azione": "Enter search mode (settings:search)",
+   "contesto": "Settings"
+  },
+  {
+   "tasto": "R",
+   "azione": "Retry loading usage data on error (settings:retry)",
+   "contesto": "Settings"
+  },
+  {
+   "tasto": "F",
+   "azione": "Send your session the /usage recommendations Claude Code can apply, when the /usage footer offers a fix. Requires v2.1.305 or later (settings:fixUsage)",
+   "contesto": "Settings"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Change the selected setting or open its submenu (select:accept)",
+   "contesto": "Settings"
+  },
+  {
+   "tasto": "space",
+   "azione": "Change the selected setting or open its submenu (select:accept)",
+   "contesto": "Settings"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Close the panel. Changes are already saved (confirm:no)",
+   "contesto": "Settings"
+  },
+  {
+   "tasto": "ctrl+s",
+   "azione": "Switch session grouping between state and directory (agents:switchView)",
+   "contesto": "Agents"
+  },
+  {
+   "tasto": "ctrl+t",
+   "azione": "Pin or unpin the selected session (agents:togglePin)",
+   "contesto": "Agents"
+  },
+  {
+   "tasto": "ctrl+f",
+   "azione": "Find sessions by name, with the n: filter. Requires v2.1.288 or later (agents:find)",
+   "contesto": "Agents"
+  },
+  {
+   "tasto": "ctrl+r",
+   "azione": "Rename the selected session. Requires v2.1.288 or later (agents:rename)",
+   "contesto": "Agents"
+  },
+  {
+   "tasto": "ctrl+up",
+   "azione": "Jump to the previous group header. Requires v2.1.288 or later (agents:previousGroup)",
+   "contesto": "Agents"
+  },
+  {
+   "tasto": "alt+up",
+   "azione": "Jump to the previous group header. Requires v2.1.288 or later (agents:previousGroup)",
+   "contesto": "Agents"
+  },
+  {
+   "tasto": "ctrl+down",
+   "azione": "Jump to the next group header. Requires v2.1.288 or later (agents:nextGroup)",
+   "contesto": "Agents"
+  },
+  {
+   "tasto": "alt+down",
+   "azione": "Jump to the next group header. Requires v2.1.288 or later (agents:nextGroup)",
+   "contesto": "Agents"
+  },
+  {
+   "tasto": "space",
+   "azione": "Dictate a prompt. Hold or tap depending on /voice mode (voice:pushToTalk)",
+   "contesto": "Chat"
+  },
+  {
+   "tasto": "wheelup",
+   "azione": "Scroll up one line. Mouse wheel scrolling triggers this action (scroll:lineUp)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "wheeldown",
+   "azione": "Scroll down one line. Mouse wheel scrolling triggers this action (scroll:lineDown)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "pageup",
+   "azione": "Scroll up half the viewport height (scroll:pageUp)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "pagedown",
+   "azione": "Scroll down half the viewport height (scroll:pageDown)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "ctrl+home",
+   "azione": "Jump to the start of the conversation (scroll:top)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "ctrl+end",
+   "azione": "Jump to the latest message and re-enable auto-follow (scroll:bottom)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "ctrl+shift+c / cmd+c",
+   "azione": "Copy the selected text to the clipboard (selection:copy)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "shift+left",
+   "azione": "Extend the active selection one column left (selection:extendLeft)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "shift+right",
+   "azione": "Extend the active selection one column right (selection:extendRight)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "shift+up",
+   "azione": "Extend the active selection one row up. Scrolls the viewport when the selection reaches the top edge (selection:extendUp)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "shift+down",
+   "azione": "Extend the active selection one row down. Scrolls the viewport when the selection reaches the bottom edge (selection:extendDown)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "shift+home",
+   "azione": "Extend the active selection to the start of the line (selection:extendLineStart)",
+   "contesto": "Scroll"
+  },
+  {
+   "tasto": "shift+end",
+   "azione": "Extend the active selection to the end of the line (selection:extendLineEnd)",
+   "contesto": "Scroll"
+  }
+ ]
+}

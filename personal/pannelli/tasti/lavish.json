@@ -1,0 +1,82 @@
+{
+ "programma": "Lavish",
+ "livello": "app",
+ "origine": "proposta",
+ "fonte": "~/KB/keybindings/lavish-20261110.md",
+ "copia": "~/KB/keybindings/lavish-20261110.md",
+ "data": "2026-11-10",
+ "nota": "mappa approvata il 10 novembre 2026, non implementata: il pannello la mostra come attiva (decisione dell'utente); ctrl+alt resta di Herdr",
+ "voci": [
+  {
+   "tasto": "j / k",
+   "azione": "Scorre l’artefatto; nel catalogo cambia selezione."
+  },
+  {
+   "tasto": "gg / G",
+   "azione": "Inizio / fine."
+  },
+  {
+   "tasto": "ctrl+f / ctrl+b",
+   "azione": "Pagina avanti / indietro."
+  },
+  {
+   "tasto": "ctrl+d / ctrl+u",
+   "azione": "Mezza pagina avanti / indietro."
+  },
+  {
+   "tasto": "ctrl+h / ctrl+j / ctrl+k / ctrl+l",
+   "azione": "Sposta il focus fra indice, documento e conversazione secondo la loro posizione."
+  },
+  {
+   "tasto": "alt+b",
+   "azione": "Mostra o nasconde l’indice laterale."
+  },
+  {
+   "tasto": "alt+q",
+   "azione": "Chiude la scheda corrente."
+  },
+  {
+   "tasto": "alt+y",
+   "azione": "Copia il percorso del file dell’artefatto."
+  },
+  {
+   "tasto": "alt+c",
+   "azione": "Copia la cartella del file dell’artefatto, non la cwd."
+  },
+  {
+   "tasto": "/",
+   "azione": "Cerca nel catalogo; nel documento cerca nel testo."
+  },
+  {
+   "tasto": "n / N",
+   "azione": "Risultato successivo / precedente."
+  },
+  {
+   "tasto": "enter",
+   "azione": "Apre l’elemento selezionato nel catalogo."
+  },
+  {
+   "tasto": "i",
+   "azione": "Entra nella risposta della sezione corrente."
+  },
+  {
+   "tasto": "esc",
+   "azione": "Esce dal campo conservando la bozza, oppure chiude il popup attivo."
+  },
+  {
+   "tasto": "gt / gT",
+   "azione": "Scheda successiva / precedente",
+   "nota": "estensione successiva, non nel primo passo"
+  },
+  {
+   "tasto": "]s / [s",
+   "azione": "Sezione successiva / precedente",
+   "nota": "estensione successiva, non nel primo passo"
+  },
+  {
+   "tasto": "]q / [q",
+   "azione": "Domanda senza risposta successiva / precedente",
+   "nota": "estensione successiva, non nel primo passo"
+  }
+ ]
+}

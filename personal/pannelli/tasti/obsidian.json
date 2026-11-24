@@ -1,0 +1,211 @@
+{
+ "programma": "Obsidian",
+ "livello": "app",
+ "origine": "predefinito",
+ "fonte": "https://github.com/obsidianmd/obsidian-help/blob/master/en/Editing%20and%20formatting/Editing%20shortcuts.md",
+ "copia": "~/KB/keybindings/obsidian-editing-shortcuts.md",
+ "data": "2026-11-24",
+ "nota": "tasti di modifica del testo; lacuna: i tasti predefiniti dei comandi (pagina Hotkeys) non si sono salvati (HTTP 503)",
+ "voci": [
+  {
+   "tasto": "cmd+c",
+   "azione": "Copy",
+   "contesto": "Common actions"
+  },
+  {
+   "tasto": "cmd+x",
+   "azione": "Cut",
+   "contesto": "Common actions"
+  },
+  {
+   "tasto": "cmd+v",
+   "azione": "Paste",
+   "contesto": "Common actions"
+  },
+  {
+   "tasto": "shift+cmd+v",
+   "azione": "Paste without formatting",
+   "contesto": "Common actions"
+  },
+  {
+   "tasto": "cmd+z",
+   "azione": "Undo",
+   "contesto": "Common actions"
+  },
+  {
+   "tasto": "shift+cmd+z",
+   "azione": "Redo",
+   "contesto": "Common actions"
+  },
+  {
+   "tasto": "cmd+c",
+   "azione": "Copy paragraph",
+   "contesto": "Common actions"
+  },
+  {
+   "tasto": "cmd+x",
+   "azione": "Cut paragraph",
+   "contesto": "Common actions"
+  },
+  {
+   "tasto": "cmd+b",
+   "azione": "Bold text",
+   "contesto": "Text formatting"
+  },
+  {
+   "tasto": "cmd+i",
+   "azione": "Italic text",
+   "contesto": "Text formatting"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Insert new line",
+   "contesto": "Text editing"
+  },
+  {
+   "tasto": "backspace",
+   "azione": "Delete the previous character",
+   "contesto": "Text editing"
+  },
+  {
+   "tasto": "delete",
+   "azione": "Delete the next character",
+   "contesto": "Text editing"
+  },
+  {
+   "tasto": "alt+backspace",
+   "azione": "Delete the previous word",
+   "contesto": "Text editing"
+  },
+  {
+   "tasto": "alt+delete",
+   "azione": "Delete the next word",
+   "contesto": "Text editing"
+  },
+  {
+   "tasto": "cmd+backspace",
+   "azione": "Delete to the beginning of the current line",
+   "contesto": "Text editing"
+  },
+  {
+   "tasto": "cmd+delete",
+   "azione": "Delete to the end of the current line",
+   "contesto": "Text editing"
+  },
+  {
+   "tasto": "shift+cmd+k",
+   "azione": "Delete the current line",
+   "contesto": "Text editing"
+  },
+  {
+   "tasto": "left",
+   "azione": "Move the cursor one character",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "alt+left",
+   "azione": "Move the cursor to the beginning of the previous word",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "alt+right",
+   "azione": "Move the cursor to the end of the next word",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "cmd+left",
+   "azione": "Move the cursor to the beginning of the current line",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "cmd+right",
+   "azione": "Move the cursor to the end of the current line",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "up",
+   "azione": "Move the cursor to the previous line",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "down",
+   "azione": "Move the cursor to the next line",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "cmd+up",
+   "azione": "Move the cursor to the beginning of the note",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "cmd+down",
+   "azione": "Move the cursor to the end of the note",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "fn+up",
+   "azione": "Move the cursor up one page",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "fn+down",
+   "azione": "Move the cursor down one page",
+   "contesto": "Text navigation"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Simplify selection",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "cmd+a",
+   "azione": "Select all",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "shift+left",
+   "azione": "Extend selection one character",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "alt+shift+left",
+   "azione": "Extend selection to the beginning of the previous word",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "alt+shift+right",
+   "azione": "Extend selection to the end of the next word",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "shift+cmd+left",
+   "azione": "Extend selection to the beginning of the current line",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "shift+cmd+right",
+   "azione": "Extend selection to the end of the current line",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "shift+cmd+up",
+   "azione": "Extend selection to the beginning of the note",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "shift+cmd+down",
+   "azione": "Extend selection to the end of the note",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "ctrl+shift+up",
+   "azione": "Extend selection one page up",
+   "contesto": "Text selection"
+  },
+  {
+   "tasto": "ctrl+shift+down",
+   "azione": "Extend selection one page down",
+   "contesto": "Text selection"
+  }
+ ]
+}

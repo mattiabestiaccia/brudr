@@ -1,0 +1,151 @@
+{
+ "programma": "YouTube",
+ "livello": "app",
+ "origine": "ufficiale",
+ "fonte": "https://support.google.com/youtube/answer/7631406",
+ "copia": "~/KB/keybindings/youtube-scorciatoie.md",
+ "data": "2026-11-23",
+ "nota": "lista ufficiale completa (YouTube nel browser)",
+ "voci": [
+  {
+   "tasto": "space",
+   "azione": "Play/Pause when the seek bar is selected. Activate a button if a button has focus.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "Play/Pause Media Key on keyboards",
+   "azione": "Play / Pause.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "k",
+   "azione": "Pause/Play in player.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "m",
+   "azione": "Mute/unmute the video.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "Stop Media Key on keyboards",
+   "azione": "Stop.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "Next Track Media Key on keyboards",
+   "azione": "Moves to the next track in a playlist.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "left",
+   "azione": "Seek backward/forward 5 seconds.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "Right arrow on the seek bar",
+   "azione": "Seek backward/forward 5 seconds.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "j",
+   "azione": "Seek backward 10 seconds in player.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "l",
+   "azione": "Seek forward 10 seconds in player.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "alt+right",
+   "azione": "Go to the next chapter.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "alt+left",
+   "azione": "Go back to the previous chapter.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": ".",
+   "azione": "While the video is paused, skip to the next frame.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": ",",
+   "azione": "While the video is paused, go back to the previous frame.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": ">",
+   "azione": "Speed up the video playback rate.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "<",
+   "azione": "Slow down the video playback rate.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "home",
+   "azione": "Seek to the beginning/last seconds of the video.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "End on the seek bar",
+   "azione": "Seek to the beginning/last seconds of the video.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "up",
+   "azione": "Increase/Decrease volume 5%.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "Down arrow on the seek bar",
+   "azione": "Increase/Decrease volume 5%.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "numbers 1 to 9",
+   "azione": "Seek to the 10% to 90% of the video.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "number 0",
+   "azione": "Seek to the beginning of the video.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "/",
+   "azione": "Go to search box.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "f",
+   "azione": "Activate full screen. If full screen mode is enabled, activate F again or press escape to exit full screen mode.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "c",
+   "azione": "Activate closed captions and subtitles if available. To hide captions and subtitles, activate C again.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "shift+n",
+   "azione": "Move to the next video (If you're using a playlist, will go to the next video of the playlist. If not using a playlist, it will move to the next YouTube suggested video).",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "shift+p",
+   "azione": "Move to the previous video. Note that this shortcut only works when you're using a playlist.",
+   "contesto": "lettore"
+  },
+  {
+   "tasto": "i",
+   "azione": "Open the Miniplayer.",
+   "contesto": "lettore"
+  }
+ ]
+}

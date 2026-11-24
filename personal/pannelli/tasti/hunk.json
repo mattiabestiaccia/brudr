@@ -1,0 +1,441 @@
+{
+ "programma": "Hunk",
+ "livello": "terminale",
+ "origine": "predefinito",
+ "fonte": "https://raw.githubusercontent.com/modem-dev/hunk/main/docs/keybindings.md",
+ "copia": "~/KB/keybindings/hunk-keybindings.md",
+ "data": "2026-11-23",
+ "nota": "L'utente non ha [keybindings] in ~/.config/hunk: valgono i predefiniti",
+ "voci": [
+  {
+   "tasto": "enter",
+   "azione": "Open the selected commit(s) (hunk.history.openSelection)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "y",
+   "azione": "Copy the focused commit id (hunk.history.copyRevision)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "r",
+   "azione": "Refresh repository history (hunk.history.refresh)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "up",
+   "azione": "Move to the previous commit (hunk.history.previousCommit)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "k",
+   "azione": "Move to the previous commit (hunk.history.previousCommit)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "down",
+   "azione": "Move to the next commit (hunk.history.nextCommit)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "j",
+   "azione": "Move to the next commit (hunk.history.nextCommit)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "v",
+   "azione": "Start visual selection (hunk.history.startVisualSelection)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Clear visual selection (hunk.history.clearSelection)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "shift+up",
+   "azione": "Extend selection upward (hunk.history.extendPrevious)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "K",
+   "azione": "Extend selection upward (hunk.history.extendPrevious)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "shift+down",
+   "azione": "Extend selection downward (hunk.history.extendNext)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "J",
+   "azione": "Extend selection downward (hunk.history.extendNext)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "pageup",
+   "azione": "Move up one page (hunk.history.pageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "b",
+   "azione": "Move up one page (hunk.history.pageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "shift+space",
+   "azione": "Move up one page (hunk.history.pageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "pagedown",
+   "azione": "Move down one page (hunk.history.pageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "space",
+   "azione": "Move down one page (hunk.history.pageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "f",
+   "azione": "Move down one page (hunk.history.pageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "u",
+   "azione": "Move up half a page (hunk.history.halfPageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "ctrl+u",
+   "azione": "Move up half a page (hunk.history.halfPageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "d",
+   "azione": "Move down half a page (hunk.history.halfPageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "ctrl+d",
+   "azione": "Move down half a page (hunk.history.halfPageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "home",
+   "azione": "Jump to the first commit (hunk.history.jumpToFirst)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "g",
+   "azione": "Jump to the first commit (hunk.history.jumpToFirst)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "end",
+   "azione": "Jump to the last commit (hunk.history.jumpToLast)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "G",
+   "azione": "Jump to the last commit (hunk.history.jumpToLast)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "/",
+   "azione": "Search history (hunk.history.search)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "n",
+   "azione": "Select the next match (hunk.history.nextMatch)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "N",
+   "azione": "Select the previous match (hunk.history.previousMatch)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "q",
+   "azione": "Quit (hunk.app.quit)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "r",
+   "azione": "Refresh the review (hunk.app.refresh)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Switch focus between files and filter (hunk.app.toggleFocusArea)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "?",
+   "azione": "Toggle help (hunk.app.toggleHelp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "i",
+   "azione": "Toggle image preview (hunk.imagePreview.toggle)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "Y",
+   "azione": "Copy the selected hunk (hunk.review.copySelectedHunk)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "y",
+   "azione": "Copy the active visual selection (hunk.review.copySelection)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "D",
+   "azione": "Delete active review note (hunk.review.deleteActiveNote)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "E",
+   "azione": "Edit active review note (hunk.review.editActiveNote)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "e",
+   "azione": "Open the selected file in your editor (hunk.review.editSelectedFile)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "d",
+   "azione": "Scroll down half a page (hunk.review.halfPageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "ctrl+d",
+   "azione": "Scroll down half a page (hunk.review.halfPageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "u",
+   "azione": "Scroll up half a page (hunk.review.halfPageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "ctrl+u",
+   "azione": "Scroll up half a page (hunk.review.halfPageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "G",
+   "azione": "Jump to end (hunk.review.jumpToBottom)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "end",
+   "azione": "Jump to end (hunk.review.jumpToBottom)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "g",
+   "azione": "Jump to start (hunk.review.jumpToTop)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "home",
+   "azione": "Jump to start (hunk.review.jumpToTop)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "}",
+   "azione": "Next annotated hunk (hunk.review.nextAnnotatedHunk)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": ".",
+   "azione": "Next file (hunk.review.nextFile)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "]",
+   "azione": "Next hunk (hunk.review.nextHunk)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "pagedown",
+   "azione": "Scroll down one page (hunk.review.pageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "space",
+   "azione": "Scroll down one page (hunk.review.pageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "f",
+   "azione": "Scroll down one page (hunk.review.pageDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "pageup",
+   "azione": "Scroll up one page (hunk.review.pageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "b",
+   "azione": "Scroll up one page (hunk.review.pageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "shift+space",
+   "azione": "Scroll up one page (hunk.review.pageUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "{",
+   "azione": "Previous annotated hunk (hunk.review.previousAnnotatedHunk)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": ",",
+   "azione": "Previous file (hunk.review.previousFile)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "[",
+   "azione": "Previous hunk (hunk.review.previousHunk)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "R",
+   "azione": "Reply to active review note (hunk.review.replyToActiveNote)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "ctrl+s",
+   "azione": "Save a draft review note (hunk.review.saveNote)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "left",
+   "azione": "Scroll code left (shifted scrolls fast) (hunk.review.scrollCodeLeft)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "shift+left",
+   "azione": "Scroll code left (shifted scrolls fast) (hunk.review.scrollCodeLeft)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "right",
+   "azione": "Scroll code right (shifted scrolls fast) (hunk.review.scrollCodeRight)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "shift+right",
+   "azione": "Scroll code right (shifted scrolls fast) (hunk.review.scrollCodeRight)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "c",
+   "azione": "Add a review note (hunk.review.startNote)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "v",
+   "azione": "Start visual line selection (hunk.review.startVisualSelection)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "down",
+   "azione": "Move down one line or note (hunk.review.stepDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "j",
+   "azione": "Move down one line or note (hunk.review.stepDown)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "up",
+   "azione": "Move up one line or note (hunk.review.stepUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "k",
+   "azione": "Move up one line or note (hunk.review.stepUp)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "z",
+   "azione": "Expand or collapse the selected context (hunk.review.toggleHunkGap)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "/",
+   "azione": "Search diff content (hunk.search.find)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "n",
+   "azione": "Next search match (hunk.search.next)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "N",
+   "azione": "Previous search match (hunk.search.previous)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "0",
+   "azione": "Auto layout (hunk.view.layoutAuto)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "2",
+   "azione": "Split layout (hunk.view.layoutSplit)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "1",
+   "azione": "Unified layout (hunk.view.layoutUnified)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "t",
+   "azione": "Choose theme (hunk.view.openThemeSelector)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "a",
+   "azione": "Toggle agent notes (hunk.view.toggleAgentNotes)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "s",
+   "azione": "Toggle files pane (hunk.view.toggleFilesPane)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "m",
+   "azione": "Toggle hunk headers (hunk.view.toggleHunkHeaders)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "l",
+   "azione": "Toggle line numbers (hunk.view.toggleLineNumbers)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "w",
+   "azione": "Toggle line wrapping (hunk.view.toggleLineWrap)",
+   "contesto": "Hunk"
+  },
+  {
+   "tasto": "M",
+   "azione": "Toggle menu bar (hunk.view.toggleMenuBar)",
+   "contesto": "Hunk"
+  }
+ ]
+}

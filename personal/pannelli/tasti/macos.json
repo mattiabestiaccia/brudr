@@ -1,0 +1,1051 @@
+{
+ "programma": "macOS",
+ "livello": "app",
+ "origine": "ufficiale",
+ "fonte": "https://support.apple.com/en-us/102650",
+ "copia": "~/KB/keybindings/macos-scorciatoie.md",
+ "data": "2026-11-23",
+ "nota": "lista ufficiale completa di Apple; le scorciatoie di sistema attive dell'utente vengono dal suo plist",
+ "voci": [
+  {
+   "tasto": "cmd+x",
+   "azione": "Cut the selected item and copy it to the Clipboard.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+c",
+   "azione": "Copy the selected item to the Clipboard. This also works for files in the Finder.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+v",
+   "azione": "Paste the contents of the Clipboard into the current document or app. This also works for files in the Finder.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+z",
+   "azione": "Undo the previous command. You can then press Shift-Command-Z to Redo, reversing the undo command. In some apps, you can undo and redo multiple commands.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+a",
+   "azione": "Select All items.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+f",
+   "azione": "Find items in a document or open a Find window.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+g",
+   "azione": "Find Again: Find the next occurrence of the item previously found. To find the previous occurrence, press Shift-Command-G.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+h",
+   "azione": "Hide the windows of the front app. To view the front app but hide all other apps, press Option-Command-H.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+m",
+   "azione": "Minimize the front window to the Dock. To minimize all windows of the front app, press Option-Command-M.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+o",
+   "azione": "Open the selected item, or open a dialog to select a file to open.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+p",
+   "azione": "Open a print dialog so that you can print the current document.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+q",
+   "azione": "Quit the current app.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+s",
+   "azione": "Save the current document.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+t",
+   "azione": "Open a new tab.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+w",
+   "azione": "Close the front window. To close all windows of the app, press Option-Command-W.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+esc",
+   "azione": "Force quit an app.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+space",
+   "azione": "Show or hide the Spotlight search field. If Siri AI (Beta) is turned on, you can also start a conversation with Siri from the Spotlight search field. To perform a Spotlight search from a Finder window, press Option–Command–Space bar. (In some versions of macOS, if you use multiple input sources to type in different languages, these shortcuts change input sources. Learn how to change a conflicting keyboard shortcut.)",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "ctrl+cmd+space",
+   "azione": "Show the Character Viewer, from which you can choose emoji and other symbols.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "fn+e",
+   "azione": "Show the Character Viewer, from which you can choose emoji and other symbols.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "ctrl+cmd+f",
+   "azione": "Use or stop using the app in full screen, if supported by the app.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "space",
+   "azione": "Use Quick Look to preview the selected item.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+tab",
+   "azione": "Switch to the next most recently used app among your open apps.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+`",
+   "azione": "Switch between the windows of the app you're using. (The character on the second key varies by keyboard. It's generally the key above the Tab key and to the left of the number 1.)",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+5",
+   "azione": "In macOS Mojave or later, take a screenshot or make a screen recording. Or use Shift-Command-3 or Shift-Command-4 for screenshots. Learn more about screenshots.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+n",
+   "azione": "Create a new empty folder in the Finder.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "ctrl+cmd+n",
+   "azione": "Create a new folder that contains the currently selected items.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "cmd+,",
+   "azione": "Open settings (preferences) for the front app.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "fn+q",
+   "azione": "Create a Quick Note.",
+   "contesto": "Cut, copy, paste, and other common shortcuts"
+  },
+  {
+   "tasto": "Power button",
+   "azione": "",
+   "contesto": "Sleep, log out, and shut down shortcuts"
+  },
+  {
+   "tasto": "Control-Shift-Power button",
+   "azione": "On built-in keyboards without Touch ID, put your displays to sleep.",
+   "contesto": "Sleep, log out, and shut down shortcuts"
+  },
+  {
+   "tasto": "Control-Power button",
+   "azione": "On built-in keyboards without Touch ID, show a dialog asking whether you want to restart, sleep, or shut down.",
+   "contesto": "Sleep, log out, and shut down shortcuts"
+  },
+  {
+   "tasto": "Control-Command-Power button",
+   "azione": "On built-in keyboards without Touch ID, force your Mac to restart, without prompting to save any open and unsaved documents.",
+   "contesto": "Sleep, log out, and shut down shortcuts"
+  },
+  {
+   "tasto": "Control-Option-Command-Power button",
+   "azione": "On built-in keyboards without Touch ID, quit all apps, then shut down your Mac. If any open documents have unsaved changes, you will be asked whether you want to save them. This is equivalent to choosing restart from the Apple menu .",
+   "contesto": "Sleep, log out, and shut down shortcuts"
+  },
+  {
+   "tasto": "ctrl+cmd+q",
+   "azione": "Lock your screen.",
+   "contesto": "Sleep, log out, and shut down shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+q",
+   "azione": "Log out of your macOS user account. You will be asked to confirm. To log out immediately without confirming, press Option-Shift-Command-Q.",
+   "contesto": "Sleep, log out, and shut down shortcuts"
+  },
+  {
+   "tasto": "Option",
+   "azione": "key while choosing Log Out, Shut Down, or Restart from the Apple menu : Complete the action without showing a confirmation dialog.",
+   "contesto": "Sleep, log out, and shut down shortcuts"
+  },
+  {
+   "tasto": "cmd+d",
+   "azione": "Duplicate the selected files.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+e",
+   "azione": "Eject the selected disk or volume.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+f",
+   "azione": "Start a Spotlight search in the Finder window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+i",
+   "azione": "Show the Get Info window for a selected file.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+r",
+   "azione": "(1) When an alias is selected in the Finder: show the original file for the selected alias. (2) In some apps, such as Calendar or Safari, refresh or reload the page. (3) In Software Update, check for software updates again.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+c",
+   "azione": "Open the Computer window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+d",
+   "azione": "Open the desktop folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+f",
+   "azione": "Open the Recents window, showing all of the files you viewed or changed recently.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+g",
+   "azione": "Open a Go to Folder window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+h",
+   "azione": "Open the Home folder of the current macOS user account.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+i",
+   "azione": "Open iCloud Drive.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+k",
+   "azione": "Open the Network window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+l",
+   "azione": "Open the Downloads folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+n",
+   "azione": "Create a new folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+o",
+   "azione": "Open the Documents folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+p",
+   "azione": "Show or hide the Preview pane in Finder windows.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+r",
+   "azione": "Open the AirDrop window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+t",
+   "azione": "Show or hide the tab bar in Finder windows.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+shift+cmd+t",
+   "azione": "Add selected Finder item to the Dock (OS X Mavericks or later).",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+shift",
+   "azione": "Press and hold while accessing the Dock to use or stop using Dock magnification.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+u",
+   "azione": "Open the Utilities folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+d",
+   "azione": "Show or hide the Dock.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+cmd+t",
+   "azione": "Add the selected item to the sidebar (OS X Mavericks or later).",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+p",
+   "azione": "Hide or show the path bar in Finder windows.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+s",
+   "azione": "Hide or show the Sidebar in Finder windows.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+/",
+   "azione": "Hide or show the status bar in Finder windows.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+j",
+   "azione": "Show View Options.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+k",
+   "azione": "Open the Connect to Server window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+cmd+a",
+   "azione": "Make an alias of the selected item.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+n",
+   "azione": "Open a new Finder window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+n",
+   "azione": "Create a new Smart Folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+t",
+   "azione": "Show or hide the tab bar when a single tab is open in the current Finder window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+t",
+   "azione": "Show or hide the toolbar when a single tab is open in the current Finder window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+v",
+   "azione": "Move the files in the Clipboard from their original location to the current location.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+y",
+   "azione": "Use Quick Look to preview the selected files.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+y",
+   "azione": "View a Quick Look slideshow of the selected files.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+1",
+   "azione": "View the items in the Finder window as icons.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+2",
+   "azione": "View the items in a Finder window as a list.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+3",
+   "azione": "View the items in a Finder window in columns.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+4",
+   "azione": "View the items in a Finder window in a gallery.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+[",
+   "azione": "Go to the previous folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+]",
+   "azione": "Go to the next folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+up",
+   "azione": "Open the folder that contains the current folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+cmd+up",
+   "azione": "Open the folder that contains the current folder in a new window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+down",
+   "azione": "Open the selected item.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "right",
+   "azione": "Open the selected folder. This works only when in list view.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "left",
+   "azione": "Close the selected folder. This works only when in list view.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+delete",
+   "azione": "Move the selected item to the Trash.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+delete",
+   "azione": "Empty the Trash.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+shift+cmd+delete",
+   "azione": "Empty the Trash without confirmation dialog.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+brightness down",
+   "azione": "Turn video mirroring on or off when your Mac is connected to more than one display.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+brightness up",
+   "azione": "Open Displays settings. This works with either Brightness key.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+brightness up",
+   "azione": "Change the brightness of your external display, if supported by your display.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+brightness down",
+   "azione": "Change the brightness of your external display, if supported by your display.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+shift+brightness up",
+   "azione": "Adjust the display brightness in smaller steps. Add the Control key to this shortcut to make the adjustment on your external display, if supported by your display.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+shift+brightness down",
+   "azione": "Adjust the display brightness in smaller steps. Add the Control key to this shortcut to make the adjustment on your external display, if supported by your display.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+mission control",
+   "azione": "Open Mission Control settings.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+mission control",
+   "azione": "Show the desktop.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "fn+h",
+   "azione": "Show the desktop.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "fn+f11",
+   "azione": "Show the desktop.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+up",
+   "azione": "Open Mission Control.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+down",
+   "azione": "Show all windows of the front app.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+volume up",
+   "azione": "Open Sound settings. This works with any of the volume keys.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+shift+volume up",
+   "azione": "Adjust the sound volume in smaller steps.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+shift+volume down",
+   "azione": "Adjust the sound volume in smaller steps.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+keyboard brightness up",
+   "azione": "Open Keyboard settings. This works with either Keyboard Brightness key.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+shift+keyboard brightness up",
+   "azione": "Adjust the keyboard brightness in smaller steps.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "alt+shift+keyboard brightness down",
+   "azione": "Adjust the keyboard brightness in smaller steps.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Option key while double-clicking",
+   "azione": "Open the item in a separate window, then close the original window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Command key while double-clicking",
+   "azione": "Open a folder in a separate tab or window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Command key while dragging to another volume",
+   "azione": "Move the dragged item to the other volume, instead of copying it.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Option key while dragging",
+   "azione": "Copy the dragged item. The pointer changes while you drag the item.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Option-Command while dragging",
+   "azione": "Make an alias of the dragged item. The pointer changes while you drag the item.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Option-click a disclosure triangle",
+   "azione": "Open all folders within the selected folder. This works only when in list view.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Command-click a window title",
+   "azione": "See the folders that contain the current folder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Command or Shift while selecting an item",
+   "azione": "Select multiple items in the Finder.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "fn+a",
+   "azione": "Show or hide the Dock.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "fn+c",
+   "azione": "Show or hide Control Center.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "fn+d",
+   "azione": "Start or stop dictation. You may be able to set a different dictation shortcut in Keyboard settings.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "fn+n",
+   "azione": "Show or hide Notification Center.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+fn+a",
+   "azione": "Show or hide Apps (macOS Tahoe 26 or later) or Launchpad (earlier versions of macOS).",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "fn+fn",
+   "azione": "Open the Character Viewer.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "Command + Command (press twice)",
+   "azione": "Open or close Type to Siri (Siri Classic).",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+6",
+   "azione": "In macOS 27 Golden Gate or later with Siri AI (Beta) turned on, ask Siri about the selected area.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+space",
+   "azione": "In macOS 27 Golden Gate or later with Siri AI (Beta) turned on, ask Siri about the active window.",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "ctrl+space",
+   "azione": "and Control–Option–Space bar : Select the previous or next input source, if you use multiple input sources to type in different languages.2",
+   "contesto": "Finder and system shortcuts"
+  },
+  {
+   "tasto": "cmd+b",
+   "azione": "Boldface the selected text, or turn boldfacing on or off.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+i",
+   "azione": "Italicize the selected text, or turn italics on or off.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+k",
+   "azione": "Add a web link.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+u",
+   "azione": "Underline the selected text, or turn underlining on or off.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+t",
+   "azione": "Show or hide the Fonts window.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+d",
+   "azione": "Select the Desktop folder from within an Open dialog or Save dialog.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+cmd+d",
+   "azione": "Show or hide the definition of the selected word.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+:",
+   "azione": "Show the Spelling and Grammar window.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+;",
+   "azione": "Find misspelled words in the document.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+delete",
+   "azione": "Delete the word to the left of the insertion point.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+h",
+   "azione": "Delete the character to the left of the insertion point. Or use Delete.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+d",
+   "azione": "Delete the character to the right of the insertion point. Or use Fn-Delete.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "fn+delete",
+   "azione": "Forward delete on keyboards that don't have a Forward Delete key. Or use Control-D.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+k",
+   "azione": "Cut the selected text, or the text between the insertion point and the end of the paragraph, and copy it to a clipboard that is available only to the app from which it was cut. You can then use Control-Y to paste the content of this clipboard into the same app.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "fn+up",
+   "azione": "Page Up: Scroll up one page.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "fn+down",
+   "azione": "Page Down: Scroll down one page.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "fn+left",
+   "azione": "Home: Scroll to the beginning of a document.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "fn+right",
+   "azione": "End: Scroll to the end of a document.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+up",
+   "azione": "Move the insertion point to the beginning of the document.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+down",
+   "azione": "Move the insertion point to the end of the document.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+left",
+   "azione": "Move the insertion point to the beginning of the current line.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+right",
+   "azione": "Move the insertion point to the end of the current line.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+left",
+   "azione": "Move the insertion point to the beginning of the previous word.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+right",
+   "azione": "Move the insertion point to the end of the next word.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+up",
+   "azione": "Select the text between the insertion point and the beginning of the document.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+down",
+   "azione": "Select the text between the insertion point and the end of the document.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+left",
+   "azione": "Select the text between the insertion point and the beginning of the current line.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+right",
+   "azione": "Select the text between the insertion point and the end of the current line.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+up",
+   "azione": "Extend text selection to the nearest character at the same horizontal location on the line above.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+down",
+   "azione": "Extend text selection to the nearest character at the same horizontal location on the line below.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+left",
+   "azione": "Extend text selection one character to the left.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+right",
+   "azione": "Extend text selection one character to the right.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+shift+up",
+   "azione": "Extend text selection to the beginning of the current paragraph, then to the beginning of the following paragraph if pressed again.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+shift+down",
+   "azione": "Extend text selection to the end of the current paragraph, then to the end of the following paragraph if pressed again.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+shift+left",
+   "azione": "Extend text selection to the beginning of the current word, then to the beginning of the following word if pressed again.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+shift+right",
+   "azione": "Extend text selection to the end of the current word, then to the end of the following word if pressed again.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+a",
+   "azione": "Move to the beginning of the line or paragraph.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+e",
+   "azione": "Move to the end of a line or paragraph.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+f",
+   "azione": "Move one character forward.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+b",
+   "azione": "Move one character backward.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+l",
+   "azione": "Center the cursor or selection in the visible area.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+p",
+   "azione": "Move up one line.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+n",
+   "azione": "Move down one line.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+o",
+   "azione": "Insert a new line after the insertion point.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+t",
+   "azione": "Swap the character behind the insertion point with the character in front of the insertion point.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+[",
+   "azione": "Left align.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "cmd+]",
+   "azione": "Right align.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+vertical |",
+   "azione": "Center align.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+f",
+   "azione": "Go to the search field.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+t",
+   "azione": "Show or hide a toolbar in the app.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+c",
+   "azione": "Copy Style: Copy the formatting settings of the selected item to the Clipboard.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+v",
+   "azione": "Paste Style: Apply the copied style to the selected item.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+shift+cmd+v",
+   "azione": "Paste and Match Style: Apply the style of the surrounding content to the item pasted within that content.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+i",
+   "azione": "Show or hide the inspector window.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+p",
+   "azione": "Page setup: Show a window for selecting document settings.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+s",
+   "azione": "Show the Save As dialog, or duplicate the current document.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+- sign",
+   "azione": "Decrease the size of the selected item.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd++ sign",
+   "azione": "Increase the size of the selected item. Command–Equal sign (=) performs the same function.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+question mark",
+   "azione": "Open the Help menu.",
+   "contesto": "Text-editing shortcuts"
+  },
+  {
+   "tasto": "ctrl+alt+cmd+8",
+   "azione": "Invert colors.",
+   "contesto": "Vision shortcuts"
+  },
+  {
+   "tasto": "ctrl+alt+cmd+,",
+   "azione": "and Control-Option-Command-Period (.) : Reduce contrast and increase contrast.",
+   "contesto": "Vision shortcuts"
+  },
+  {
+   "tasto": "ctrl+f2",
+   "azione": "Move focus to the menu bar. You can then use the arrow keys to navigate the menu, press Return to open a selected menu or choose a selected menu item, or type the menu item's name to jump to that item in the selected menu.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+fn+f2",
+   "azione": "Move focus to the menu bar. You can then use the arrow keys to navigate the menu, press Return to open a selected menu or choose a selected menu item, or type the menu item's name to jump to that item in the selected menu.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+f3",
+   "azione": "Move focus to the Dock.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+fn+f3",
+   "azione": "Move focus to the Dock.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+f4",
+   "azione": "Move focus to the active window or next window.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+fn+f4",
+   "azione": "Move focus to the active window or next window.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+f5",
+   "azione": "Move focus to the window toolbar.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+fn+f5",
+   "azione": "Move focus to the window toolbar.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+f6",
+   "azione": "Move focus to the floating window.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+fn+f6",
+   "azione": "Move focus to the floating window.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+shift+f6",
+   "azione": "Move focus to the previous panel.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+f7",
+   "azione": "Change the way Tab moves focus—between navigation of all controls on the screen, or only text boxes and lists.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+fn+f7",
+   "azione": "Change the way Tab moves focus—between navigation of all controls on the screen, or only text boxes and lists.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+f8",
+   "azione": "Move focus to the status menu in the menu bar.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+fn+f8",
+   "azione": "Move focus to the status menu in the menu bar.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "cmd+`",
+   "azione": "Activate the next open window in the front app.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+`",
+   "azione": "Activate the previous open window in the front app.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+`",
+   "azione": "Move the focus to the window drawer.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "tab",
+   "azione": "and Shift-Tab : Move to next control, move to previous control.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+tab",
+   "azione": "Move to the next control when a text field is selected.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+shift+tab",
+   "azione": "Move to the previous grouping of controls.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "arrow keys",
+   "azione": "Move to the adjacent item in a list, tab group, or menu, or move sliders and adjusters (Up Arrow to increase values, Down Arrow to decrease values)",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "ctrl+arrow keys",
+   "azione": "Move to a control adjacent to the text field.",
+   "contesto": "Keyboard focus shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+f5",
+   "azione": "Show the Accessibility Shortcuts panel.",
+   "contesto": "Other accessibility shortcuts"
+  },
+  {
+   "tasto": "press touch id",
+   "azione": "Show the Accessibility Shortcuts panel.",
+   "contesto": "Other accessibility shortcuts"
+  }
+ ]
+}

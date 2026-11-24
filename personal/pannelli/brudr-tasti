@@ -1,0 +1,1115 @@
+#!/usr/bin/env python3
+"""brudr-tasti: the user's key bindings, every program in one list (the Tasti panel of brudr).
+
+Usage:
+  brudr-tasti                  update the index if a source changed, then search it with fzf
+  brudr-tasti genera [--forza] update the index (all programs with --forza)
+  brudr-tasti righe [PROGRAMMA]  the lines fzf shows (tab separated, id first)
+  brudr-tasti scheda ID        the details of one line (fzf preview)
+  brudr-tasti filtro +1|-1     next or previous program filter (fzf transform)
+  brudr-tasti controlla        conflicts, hand lists older than 90 days, sources with errors
+
+The index is ~/.config/herdr-app/data/pannelli/tasti.json. It holds keys, actions
+and the paths or addresses of their sources, nothing else: no file contents.
+Two kinds of source:
+- D, read from the user's files or programs each time they change (Herdr, Claude Code,
+  Pi, Neovim, Superfile, Fish, Nushell, Obsidian, macOS, Kyria, Hammerspoon,
+  Rectangle, Claude Desktop, Codex, Zed);
+- M, lists written once from official pages, one JSON file per program in the
+  tasti/ folder next to the index (see personal/pannelli/tasti/).
+The Work list (tasti-work.json, written by another session) is read when present;
+this program never reads ~/Work.
+
+Keys are written one way for every program: modifiers in the Mac order
+ctrl, alt, shift, cmd (then fn), joined with +, then the key: ctrl+alt+h,
+alt+shift+cmd+left. A sequence is chords separated by a space: ctrl+x ctrl+k.
+
+Environment (tests): BRUDR_TASTI_CASA (the home the sources are read from),
+BRUDR_PANNELLI_DATI (the index folder), BRUDR_TASTI_MANO (the hand lists),
+BRUDR_TASTI_SALTA (programs not to read, comma separated), BRUDR_TASTI_PI_DOC,
+BRUDR_TASTI_HERDR_PREDEFINITI, BRUDR_TASTI_FILTRO (fzf --filter, no terminal).
+"""
+import datetime
+import hashlib
+import json
+import os
+import plistlib
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import tomllib
+
+CASA = os.environ.get("BRUDR_TASTI_CASA") or os.path.expanduser("~")
+DATI = os.environ.get("BRUDR_PANNELLI_DATI") or os.path.join(CASA, ".config/herdr-app/data/pannelli")
+INDICE = os.path.join(DATI, "tasti.json")
+MANO = os.environ.get("BRUDR_TASTI_MANO") or os.path.join(DATI, "tasti")
+WORK = os.path.join(DATI, "tasti-work.json")
+HERDR_PREDEFINITI = os.environ.get("BRUDR_TASTI_HERDR_PREDEFINITI") or os.path.join(MANO, "herdr-predefiniti.json")
+PI_DOC = os.environ.get("BRUDR_TASTI_PI_DOC") or \
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/keybindings.md"
+SALTA = {x.strip() for x in os.environ.get("BRUDR_TASTI_SALTA", "").split(",") if x.strip()}
+VERSIONE = 1
+VECCHIA = 90  # days: a hand list older than this is flagged
+PATH_PROGRAMMI = f"{CASA}/bin:{CASA}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+
+def casa(p):
+    return os.path.join(CASA, p)
+
+
+def breve(p):
+    """A path as ~/..., the form the index keeps."""
+    return "~" + p[len(CASA):] if p == CASA or p.startswith(CASA + "/") else p
+
+
+# ---------------------------------------------------------------- keys
+
+MODIFICATORI = {
+    "ctrl": "ctrl", "control": "ctrl", "ctl": "ctrl", "c": "ctrl", "⌃": "ctrl", "^": "ctrl",
+    "alt": "alt", "option": "alt", "opt": "alt", "meta": "alt", "m": "alt", "a": "alt", "⌥": "alt",
+    "shift": "shift", "s": "shift", "⇧": "shift",
+    "cmd": "cmd", "command": "cmd", "super": "cmd", "mod": "cmd", "d": "cmd", "⌘": "cmd", "gui": "cmd",
+    "fn": "fn", "globe": "fn",
+}
+ORDINE = ["ctrl", "alt", "shift", "cmd", "fn"]
+NOMI_TASTI = {
+    "left": "left", "right": "right", "up": "up", "down": "down",
+    "leftarrow": "left", "rightarrow": "right", "uparrow": "up", "downarrow": "down",
+    "←": "left", "→": "right", "↑": "up", "↓": "down", "◀": "left", "▶": "right", "▲": "up", "▼": "down",
+    "enter": "enter", "return": "enter", "cr": "enter", "invio": "enter", "⏎": "enter", "↩": "enter", "ret": "enter",
+    "escape": "esc", "esc": "esc", "⎋": "esc",
+    "tab": "tab", "⇥": "tab", "backtab": "shift+tab",
+    "space": "space", "spacebar": "space", "spazio": "space", "spc": "space",
+    "backspace": "backspace", "bs": "backspace", "bksp": "backspace", "⌫": "backspace",
+    "delete": "delete", "del": "delete", "canc": "delete", "forwarddelete": "delete",
+    "pageup": "pageup", "pgup": "pageup", "page-up": "pageup", "pgsu": "pageup",
+    "pagedown": "pagedown", "pgdn": "pagedown", "pgdown": "pagedown", "page-down": "pagedown", "pggiù": "pagedown",
+    "home": "home", "end": "end", "fine": "end", "insert": "insert",
+    "grave": "`", "graveaccent": "`", "comma": ",", "period": ".", "dot": ".", "slash": "/",
+    "minus": "-", "plus": "+", "equal": "=", "semicolon": ";", "colon": ":",
+    "leftbracket": "[", "rightbracket": "]", "lt": "<", "bar": "|", "bslash": "\\", "backslash": "\\",
+    "capslock": "capslock", "caps": "capslock",
+}
+# Names of several words, made one before splitting a sequence on spaces.
+PIU_PAROLE = [
+    (r"space\s*bar", "space"), (r"(left|right|up|down)\s+arrow", r"\1"), (r"page\s+(up|down)", r"page\1"),
+    (r"grave\s+accent(\s*\(`\))?", "grave"), (r"forward\s+delete", "forwarddelete"), (r"caps\s+lock", "capslock"),
+    (r"left\s+(curly\s+)?bracket(\s*\(\{\))?", "leftbracket"), (r"right\s+(curly\s+)?bracket(\s*\(\}\))?", "rightbracket"),
+    (r"comma\s*\(,\)", "comma"), (r"period\s*\(\.\)", "period"), (r"slash\s*\(/\)", "slash"),
+    (r"minus\s+sign\s*\(-\)", "minus"), (r"plus\s+sign\s*\(\+\)", "plus"), (r"equal\s+sign\s*\(=\)", "equal"),
+    (r"colon\s*\(:\)", "colon"), (r"semicolon\s*\(;\)", "semicolon"), (r"question\s+mark\s*\(\?\)", "?"),
+    (r"vertical\s+bar\s*\(\|\)", "bar"),
+]
+RE_MOD = re.compile(r"^(ctrl|control|ctl|alt|option|opt|meta|shift|cmd|command|super|mod|fn|globe|hyper|[⌃⌥⇧⌘])\s*(?:[+-]\s*|(?=[⌃⌥⇧⌘]))", re.I)
+RE_SIMBOLI = re.compile(r"^([⌃⌥⇧⌘]+)(.+)$")
+
+
+def accordo(testo):
+    """One chord in any of the spellings the sources use -> ctrl+alt+shift+cmd+key."""
+    t = testo.strip()
+    if not t:
+        return ""
+    mods = set()
+    m = RE_SIMBOLI.match(t)  # ⌃⌥H, ⌘⇧P
+    if m and not t.startswith(("⌃+", "⌥+", "⇧+", "⌘+")):
+        mods.update(MODIFICATORI[c] for c in m[1])
+        t = m[2]
+    while True:
+        m = RE_MOD.match(t)
+        if not m or len(t) == len(m[0]):
+            break
+        nome = m[1].lower()
+        if nome == "hyper":
+            mods.update(("ctrl", "alt", "shift", "cmd"))
+        else:
+            mods.add(MODIFICATORI[nome])
+        t = t[len(m[0]):]
+    chiave = t.strip()
+    nome = NOMI_TASTI.get(chiave.lower().replace(" ", ""), None)
+    if nome is None:
+        nome = chiave.lower() if (mods and len(chiave) == 1) else chiave
+        if len(chiave) > 1 and re.fullmatch(r"[A-Za-z]\w*", chiave):
+            nome = chiave.lower()
+    if "+" in nome and nome != "+":  # backtab
+        extra, nome = nome.rsplit("+", 1)
+        mods.add(extra)
+    return "+".join([x for x in ORDINE if x in mods] + [nome])
+
+
+def norma(testo):
+    """A key or a sequence of chords (separated by spaces) in the shared spelling."""
+    t = str(testo).strip()
+    for a, b in PIU_PAROLE:
+        t = re.sub(a, b, t, flags=re.I)
+    t = re.sub(r"\s*\+\s*(?=\S)", "+", t)  # "⌘ + Shift + n"
+    return " ".join(accordo(p) for p in t.split())
+
+
+VIM_SPECIALI = {"cr": "enter", "esc": "esc", "tab": "tab", "bs": "backspace", "space": "space", "leader": "<leader>",
+                "localleader": "<localleader>", "lt": "<", "bar": "|", "bslash": "\\", "del": "delete", "nl": "ctrl+j",
+                "up": "up", "down": "down", "left": "left", "right": "right", "home": "home", "end": "end",
+                "pageup": "pageup", "pagedown": "pagedown", "s-tab": "shift+tab", "nop": ""}
+
+
+def tasto_vim(lhs):
+    """A Neovim left-hand side -> chords: <C-w>v -> ctrl+w v, ' ff' -> <leader> f f."""
+    parti = []
+    i = 0
+    if lhs.startswith(" "):
+        parti.append("<leader>")
+        i = 1
+    while i < len(lhs):
+        if lhs[i] == "<":
+            j = lhs.find(">", i)
+            if j > i + 1:
+                dentro = lhs[i + 1:j]
+                low = dentro.lower()
+                if low in VIM_SPECIALI:
+                    parti.append(VIM_SPECIALI[low])
+                elif re.fullmatch(r"([cmasd]-)+.+", low):
+                    *mods, chiave = dentro.split("-") if not dentro.endswith("--") else (*dentro[:-2].split("-"), "-")
+                    nomi = {MODIFICATORI[x.lower()] for x in mods if x}
+                    k = VIM_SPECIALI.get(chiave.lower(), chiave)
+                    k = k.lower() if len(k) == 1 and "shift" not in nomi else k
+                    parti.append("+".join([x for x in ORDINE if x in nomi] + [k]))
+                elif re.fullmatch(r"f\d+", low):
+                    parti.append(low)
+                else:
+                    parti.append(f"<{dentro}>")
+                i = j + 1
+                continue
+        parti.append(lhs[i])
+        i += 1
+    # Plain characters next to each other are one Vim word (gg, ]h): keep them together.
+    uscita = []
+    for p in parti:
+        if uscita and len(p) == 1 and len(uscita[-1]) >= 1 and "+" not in uscita[-1] and not uscita[-1].startswith("<") \
+                and uscita[-1] not in VIM_SPECIALI.values():
+            uscita[-1] += p
+        else:
+            uscita.append(p)
+    return " ".join(x for x in uscita if x)
+
+
+# ---------------------------------------------------------------- helpers
+
+def leggi_json(p):
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def esegui(argv, timeout=60, env=None, input_=None):
+    e = dict(os.environ, PATH=PATH_PROGRAMMI)
+    if env:
+        e.update(env)
+    r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=e, input=input_,
+                       stdin=None if input_ is not None else subprocess.DEVNULL)
+    if r.returncode != 0:
+        raise RuntimeError(f"{os.path.basename(argv[0])}: uscita {r.returncode}: {r.stderr.strip()[:200]}")
+    return r.stdout
+
+
+def programma_eseguibile(nome):
+    return shutil.which(nome, path=PATH_PROGRAMMI)
+
+
+def voce(programma, tasto, azione, origine, fonte, livello, contesto=None, nota=None):
+    v = {"programma": programma, "tasto": tasto, "azione": " ".join(str(azione).split()), "origine": origine,
+         "fonte": fonte, "livello": livello}
+    if contesto:
+        v["contesto"] = contesto
+    if nota:
+        v["nota"] = nota
+    return v
+
+
+def umano(nome):
+    """open_file_with_editor -> open file with editor; cursorWordLeft -> cursor word left."""
+    nome = re.sub(r"([a-z])([A-Z])", r"\1 \2", nome.split(".")[-1].split(":")[-1])
+    return nome.replace("_", " ").lower()
+
+
+# ---------------------------------------------------------------- sources (D)
+
+def herdr():
+    utente = casa(".config/herdr-app/keys.json")
+    try:
+        predefiniti = leggi_json(HERDR_PREDEFINITI)
+    except (OSError, ValueError):
+        predefiniti = {}
+    voci = []
+    if not os.path.exists(utente):
+        sezioni, origine_tutti = predefiniti, "predefinito"
+    else:
+        sezioni, origine_tutti = leggi_json(utente), None
+    for sezione, mappa in sezioni.items():
+        if not isinstance(mappa, dict):
+            continue
+        base = predefiniti.get(sezione, {}) if isinstance(predefiniti.get(sezione), dict) else {}
+        for tasto, azione in mappa.items():
+            if origine_tutti:
+                origine = origine_tutti
+            else:
+                origine = "predefinito" if base.get(tasto) == azione else "utente"
+            if isinstance(azione, str) and azione.startswith("send:"):
+                azione = "manda " + json.dumps(azione[5:])[1:-1]
+            voci.append(voce("Herdr", norma(tasto), azione, origine, breve(utente) if not origine_tutti else
+                             breve(HERDR_PREDEFINITI), "app", contesto=f"keys.json · {sezione}"))
+    return voci
+
+
+def herdr_file():
+    return [casa(".config/herdr-app/keys.json"), HERDR_PREDEFINITI]
+
+
+def claude_code():
+    p = casa(".claude-brus/keybindings.json")
+    voci = []
+    if os.path.exists(p):
+        for blocco in leggi_json(p).get("bindings", []):
+            for tasto, azione in (blocco.get("bindings") or {}).items():
+                testo = f"esegue /{azione[8:]}" if isinstance(azione, str) and azione.startswith("command:") else \
+                    ("tasto tolto" if azione is None else azione)
+                voci.append(voce("Claude Code", norma(tasto), testo, "utente", breve(p), "terminale",
+                                 contesto=blocco.get("context")))
+    return voci
+
+
+def pi():
+    """Pi: defaults from its own docs, the user's keybindings.json over them."""
+    utente = casa(".pi/agent/keybindings.json")
+    sue = leggi_json(utente) if os.path.exists(utente) else {}
+    voci = []
+    sezione = None
+    if os.path.exists(PI_DOC):
+        with open(PI_DOC, encoding="utf-8") as f:
+            for riga in f:
+                if riga.startswith("#"):
+                    sezione = riga.strip("# \n")
+                m = re.match(r"\|\s*`([\w.]+)`\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$", riga)
+                if not m or m[1] in sue:
+                    continue
+                for t in re.findall(r"`([^`]+)`", m[2]):
+                    voci.append(voce("Pi", norma(t), f"{m[3]} ({m[1]})", "predefinito", PI_DOC, "terminale",
+                                     contesto=sezione))
+    for azione, tasti in sue.items():
+        if not tasti:
+            voci.append(voce("Pi", "(nessuno)", f"{umano(azione)} ({azione}): tolto dall'utente", "utente",
+                             breve(utente), "terminale"))
+        for t in tasti if isinstance(tasti, list) else [tasti]:
+            voci.append(voce("Pi", norma(t), f"{umano(azione)} ({azione})", "utente", breve(utente), "terminale"))
+    return voci
+
+
+def pi_file():
+    return [casa(".pi/agent/keybindings.json"), PI_DOC]
+
+
+NVIM_LUA = r"""
+vim.api.nvim_exec_autocmds("User", { pattern = "VeryLazy" })
+local out = {}
+for _, mode in ipairs({ "n", "i", "v", "x", "o", "c", "t", "s" }) do
+  for _, m in ipairs(vim.api.nvim_get_keymap(mode)) do
+    table.insert(out, { mode = mode, lhs = m.lhs, desc = m.desc or "", rhs = m.rhs or "" })
+  end
+end
+local f = io.open(os.getenv("BRUDR_TASTI_NVIM_OUT"), "w")
+f:write(vim.json.encode(out))
+f:close()
+"""
+MODI_VIM = {"n": "normale", "i": "inserimento", "v": "visuale e selezione", "x": "visuale", "o": "operatore",
+            "c": "riga di comando", "t": "terminale", "s": "selezione"}
+
+
+def neovim():
+    """The maps Neovim has after LazyVim's VeryLazy, read headless: no swap, shada or state left behind."""
+    nvim = programma_eseguibile("nvim")
+    if not nvim:
+        raise RuntimeError("nvim non trovato")
+    keymaps = casa(".config/nvim/lua/config/keymaps.lua")
+    sue = set()
+    if os.path.exists(keymaps):
+        with open(keymaps, encoding="utf-8") as f:
+            for modi, lhs in re.findall(r"vim\.keymap\.set\(\s*(\{[^}]*\}|\"\w+\")\s*,\s*\"([^\"]+)\"", f.read()):
+                for m in re.findall(r"\w+", modi):
+                    sue.add((m, tasto_vim(lhs)))
+    with tempfile.TemporaryDirectory(prefix="brudr-tasti-nvim-") as d:
+        script, out = os.path.join(d, "mappe.lua"), os.path.join(d, "mappe.json")
+        with open(script, "w") as f:
+            f.write(NVIM_LUA)
+        esegui([nvim, "--headless", "-n", "-i", "NONE", f"+luafile {script}", "+qa!"], timeout=120,
+               env={"BRUDR_TASTI_NVIM_OUT": out, "XDG_STATE_HOME": os.path.join(d, "state"),
+                    "XDG_CACHE_HOME": os.path.join(d, "cache"), "HOME": CASA})
+        mappe = leggi_json(out)
+    voci, viste = [], set()
+    for m in mappe:
+        lhs, desc, rhs = m.get("lhs", ""), m.get("desc", ""), m.get("rhs", "")
+        if lhs.startswith("<Plug>") or "<SNR>" in lhs or (not desc and rhs.startswith("<Plug>")):
+            continue
+        tasto = tasto_vim(lhs)
+        chiave = (m["mode"], tasto)
+        if chiave in viste or not tasto:
+            continue
+        viste.add(chiave)
+        azione = desc or rhs or "(funzione Lua)"
+        origine = "utente" if chiave in sue or (m["mode"] in "xv" and ("v", tasto) in sue) else "predefinito"
+        voci.append(voce("Neovim", tasto, azione, origine, breve(keymaps) if origine == "utente" else
+                         "LazyVim e plugin", "terminale", contesto=f"modo {MODI_VIM.get(m['mode'], m['mode'])}"))
+    return voci
+
+
+def neovim_file():
+    # The config tree and the plugins' lock: a change in either changes the maps.
+    base = casa(".config/nvim")
+    file = [os.path.join(base, "lazy-lock.json"), os.path.join(base, "init.lua"), programma_eseguibile("nvim") or ""]
+    for radice, _, nomi in os.walk(os.path.join(base, "lua")):
+        file.extend(os.path.join(radice, n) for n in sorted(nomi) if n.endswith(".lua"))
+    return file
+
+
+def superfile():
+    p = casa("Library/Application Support/superfile/hotkeys.toml")
+    with open(p, "rb") as f:
+        dati = tomllib.load(f)
+    nomi = {}
+    try:  # what each action does, from the official list (hand file)
+        for v in leggi_json(os.path.join(MANO, "superfile.json")).get("voci", []):
+            if v.get("variabile"):
+                nomi[v["variabile"]] = v["azione"]
+    except (OSError, ValueError):
+        pass
+    voci = []
+    for azione, tasti in dati.items():
+        if not isinstance(tasti, list):
+            continue
+        for t in tasti:
+            if t:
+                voci.append(voce("Superfile", norma(t), nomi.get(azione, umano(azione)) + f" ({azione})", "utente",
+                                 breve(p), "terminale"))
+    return voci
+
+
+def fish():
+    fish_ = programma_eseguibile("fish")
+    if not fish_:
+        raise RuntimeError("fish non trovato")
+    voci = []
+    uscita = esegui([fish_, "--no-config", "-c", "fish_vi_key_bindings; bind"], timeout=30, env={"HOME": CASA})
+    config = casa(".config/fish/config.fish")
+    righe = [("predefinito", r) for r in uscita.splitlines()]
+    if os.path.exists(config):
+        with open(config, encoding="utf-8") as f:
+            righe += [("utente", r.strip()) for r in f if r.strip().startswith("bind ")]
+    for origine, riga in righe:
+        if not riga.startswith("bind "):
+            continue
+        try:
+            parole = shlex.split(riga.replace("\\n", " "), posix=True)[1:]
+        except ValueError:
+            continue
+        modo, nuovo = "default", None
+        while parole and parole[0].startswith("-"):
+            p = parole.pop(0)
+            if p in ("-M", "--mode") and parole:
+                modo = parole.pop(0)
+            elif p in ("-m", "--sets-mode") and parole:
+                nuovo = parole.pop(0)
+        if not parole:
+            continue
+        chiave, *comando = parole
+        azione = " ".join(comando)
+        if len(azione) > 90 or "\n" in azione:
+            azione = azione[:87] + "…"
+        if nuovo:
+            azione += f" → modo {nuovo}"
+        tasto = " ".join(accordo(c.replace("-", "+") if re.match(r"^(ctrl|alt|shift|super)-", c) else c)
+                         for c in chiave.split(","))
+        voci.append(voce("Fish", tasto, azione or "(niente)", origine, breve(config) if origine == "utente" else
+                         "fish_vi_key_bindings", "terminale", contesto=f"modo {modo}"))
+    return voci
+
+
+def fish_file():
+    return [casa(".config/fish/config.fish"), programma_eseguibile("fish") or ""]
+
+
+def tasto_nu(modificatore, codice):
+    mods = set()
+    m = str(modificatore).lower()
+    for parola, nome in (("control", "ctrl"), ("alt", "alt"), ("shift", "shift"), ("super", "cmd")):
+        if parola in m:
+            mods.add(nome)
+    c = str(codice)
+    mm = re.fullmatch(r"(?:char_|Char\(')(.+?)(?:'\))?", c)
+    k = mm[1] if mm else c
+    k = NOMI_TASTI.get(k.lower().replace("_", ""), k.lower() if len(k) > 1 else k)
+    if "+" in k and k != "+":  # backtab is shift+tab
+        extra, k = k.rsplit("+", 1)
+        mods.add(extra)
+    return "+".join([x for x in ORDINE if x in mods] + [k])
+
+
+def evento_nu(e):
+    if isinstance(e, dict):
+        if "until" in e:
+            return " o ".join(evento_nu(x) for x in e["until"])
+        return " ".join(f"{v}" for v in e.values())
+    if isinstance(e, list):
+        return ", ".join(evento_nu(x) for x in e)
+    return str(e)
+
+
+def nushell():
+    nu = programma_eseguibile("nu")
+    if not nu:
+        raise RuntimeError("nu non trovato")
+    config = casa("Library/Application Support/nushell/config.nu")
+    voci = []
+    # The keybindings of the config (Nushell's own, unless the user adds some), with his config loaded.
+    dati = json.loads(esegui([nu, "-c", "{mode: $env.config.edit_mode, kb: $env.config.keybindings} | to json -r"],
+                             timeout=30, env={"HOME": CASA}))
+    modo = dati.get("mode", "emacs")
+    for k in dati.get("kb", []):
+        voci.append(voce("Nushell", tasto_nu(k.get("modifier"), k.get("keycode")),
+                         f"{k.get('name', '')}: {evento_nu(k.get('event'))}", "predefinito", breve(config) +
+                         " ($env.config.keybindings)", "terminale", contesto="tutti i modi"))
+    predef = json.loads(esegui([nu, "--no-config-file", "-c", f"keybindings default | where mode == '{modo}' | to json -r"],
+                               timeout=30))
+    for k in predef:
+        voci.append(voce("Nushell", tasto_nu(k.get("modifier"), k.get("code")), k.get("event", ""), "predefinito",
+                         "keybindings default", "terminale", contesto=f"modo {modo}"))
+    return voci
+
+
+def nushell_file():
+    return [casa("Library/Application Support/nushell/config.nu"), programma_eseguibile("nu") or ""]
+
+
+def dentro_work(p):
+    reale = os.path.realpath(p)
+    work = os.path.realpath(casa("Work"))
+    return reale == work or reale.startswith(work + os.sep)
+
+
+def vault_personali():
+    """Obsidian's vaults, without the ones in ~/Work: their paths are compared, never opened."""
+    p = casa("Library/Application Support/obsidian/obsidian.json")
+    if not os.path.exists(p):
+        return []
+    vault = []
+    for v in (leggi_json(p).get("vaults") or {}).values():
+        percorso = v.get("path") if isinstance(v, dict) else None
+        if percorso and not dentro_work(percorso):
+            vault.append(percorso)
+    return sorted(vault)
+
+
+def obsidian():
+    voci = []
+    for percorso in vault_personali():
+        hk = os.path.join(percorso, ".obsidian", "hotkeys.json")
+        if not os.path.exists(hk):
+            continue
+        for comando, tasti in leggi_json(hk).items():
+            if not tasti:
+                voci.append(voce("Obsidian", "(nessuno)", f"{comando}: tasto tolto", "utente", breve(hk), "app",
+                                 contesto=f"vault {os.path.basename(percorso)}"))
+            for t in tasti or []:
+                testo = "+".join([*t.get("modifiers", []), t.get("key", "")])
+                voci.append(voce("Obsidian", norma(testo), comando, "utente", breve(hk), "app",
+                                 contesto=f"vault {os.path.basename(percorso)}"))
+    return voci
+
+
+def obsidian_file():
+    file = [casa("Library/Application Support/obsidian/obsidian.json")]
+    file += [os.path.join(v, ".obsidian", "hotkeys.json") for v in vault_personali()]
+    return file
+
+
+# macOS virtual key codes (ANSI) and modifier flags.
+KEYCODE = {0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g", 6: "z", 7: "x", 8: "c", 9: "v", 11: "b", 12: "q", 13: "w",
+           14: "e", 15: "r", 16: "y", 17: "t", 18: "1", 19: "2", 20: "3", 21: "4", 22: "6", 23: "5", 24: "=", 25: "9",
+           26: "7", 27: "-", 28: "8", 29: "0", 30: "]", 31: "o", 32: "u", 33: "[", 34: "i", 35: "p", 36: "enter",
+           37: "l", 38: "j", 39: "'", 40: "k", 41: ";", 42: "\\", 43: ",", 44: "/", 45: "n", 46: "m", 47: ".",
+           48: "tab", 49: "space", 50: "`", 51: "backspace", 53: "esc", 96: "f5", 97: "f6", 98: "f7", 99: "f3",
+           100: "f8", 101: "f9", 103: "f11", 105: "f13", 107: "f14", 109: "f10", 111: "f12", 113: "f15", 115: "home",
+           116: "pageup", 117: "delete", 118: "f4", 119: "end", 120: "f2", 121: "pagedown", 122: "f1", 123: "left",
+           124: "right", 125: "down", 126: "up"}
+FLAG = [(1 << 18, "ctrl"), (1 << 19, "alt"), (1 << 17, "shift"), (1 << 20, "cmd"), (1 << 23, "fn")]
+# The system marks arrows and F keys with the fn flag by itself.
+TASTI_FUNZIONE = {k for k, v in KEYCODE.items() if v in ("left", "right", "up", "down", "home", "end", "pageup",
+                                                         "pagedown", "delete") or re.fullmatch(r"f\d+", v)}
+
+
+def tasto_mac(keycode, flags):
+    mods = [nome for bit, nome in FLAG if flags & bit and not (nome == "fn" and keycode in TASTI_FUNZIONE)]
+    return "+".join(mods + [KEYCODE.get(keycode, f"tasto {keycode}")])
+
+
+# AppleSymbolicHotKeys ids (Keyboard settings > Keyboard Shortcuts). Names from those settings.
+SIMBOLICI = {
+    7: "Sposta lo stato attivo sulla barra dei menu", 8: "Sposta lo stato attivo sul Dock",
+    9: "Sposta lo stato attivo sulla finestra attiva o successiva",
+    10: "Sposta lo stato attivo sulla barra strumenti della finestra", 11: "Sposta lo stato attivo sulla finestra mobile",
+    12: "Attiva o disattiva l'accesso con la tastiera", 13: "Cambia il modo in cui Tab sposta lo stato attivo",
+    15: "Zoom: attiva o disattiva", 17: "Zoom: ingrandisci", 19: "Zoom: riduci", 21: "Inverti i colori",
+    23: "Smussatura immagini", 25: "Aumenta il contrasto", 26: "Riduci il contrasto",
+    27: "Sposta lo stato attivo sulla finestra successiva",
+    28: "Salva l'immagine dello schermo come file", 29: "Copia l'immagine dello schermo negli appunti",
+    30: "Salva l'immagine dell'area selezionata come file", 31: "Copia l'immagine dell'area selezionata negli appunti",
+    32: "Mission Control", 33: "Finestre dell'applicazione", 34: "Mission Control (lento)",
+    35: "Finestre dell'applicazione (lento)", 36: "Mostra la scrivania", 37: "Mostra la scrivania (lento)",
+    51: "Sposta lo stato attivo sul cassetto della finestra", 52: "Attiva o disattiva l'occultamento del Dock",
+    53: "Riduci la luminosità", 54: "Aumenta la luminosità", 55: "Riduci la luminosità (lento)",
+    56: "Aumenta la luminosità (lento)", 57: "Sposta lo stato attivo sui menu di stato",
+    59: "Attiva o disattiva VoiceOver", 60: "Sorgente di input precedente", 61: "Sorgente di input successiva",
+    62: "Dashboard", 63: "Dashboard (lento)", 64: "Mostra la ricerca di Spotlight",
+    65: "Mostra la finestra di ricerca del Finder", 70: "Dizionario", 73: "Nascondi e mostra Front Row",
+    75: "Pannello Siri", 79: "Spostati a sinistra di uno spazio", 80: "Spostati a sinistra di uno spazio (lento)",
+    81: "Spostati a destra di uno spazio", 82: "Spostati a destra di uno spazio (lento)",
+    98: "Mostra il menu Aiuto", 118: "Passa alla scrivania 1", 119: "Passa alla scrivania 2",
+    120: "Passa alla scrivania 3", 121: "Passa alla scrivania 4", 160: "Launchpad",
+    162: "Mostra il pannello delle abbreviazioni di Accessibilità", 163: "Centro notifiche",
+    164: "Non disturbare", 175: "Attiva o disattiva Non disturbare",
+    179: "Mostra o nascondi Control Center", 184: "Opzioni per screenshot e registrazione",
+    190: "Note rapida", 222: "Pannello di Stage Manager",
+}
+
+
+def macos():
+    p = casa("Library/Preferences/com.apple.symbolichotkeys.plist")
+    with open(p, "rb") as f:
+        dati = plistlib.load(f).get("AppleSymbolicHotKeys", {})
+    voci = []
+    for ident, v in sorted(dati.items(), key=lambda x: int(x[0])):
+        if not v.get("enabled"):
+            continue
+        par = (v.get("value") or {}).get("parameters") or []
+        if len(par) < 3 or int(par[1]) == 65535:
+            continue
+        nome = SIMBOLICI.get(int(ident), f"scorciatoia di sistema {ident}")
+        voci.append(voce("macOS", tasto_mac(int(par[1]), int(par[2])), nome, "configurato", breve(p), "globale",
+                         contesto="Impostazioni > Tastiera > Abbreviazioni", nota=f"AppleSymbolicHotKeys {ident}"))
+    return voci
+
+
+def rectangle():
+    """The shortcuts Rectangle saved (only the ones the user set: the defaults are not in the file)."""
+    p = casa("Library/Preferences/com.knollsoft.Rectangle.plist")
+    with open(p, "rb") as f:
+        dati = plistlib.load(f)
+    voci = []
+    for nome, v in sorted(dati.items()):
+        if isinstance(v, dict) and "keyCode" in v and "modifierFlags" in v:
+            voci.append(voce("Rectangle", tasto_mac(int(v["keyCode"]), int(v["modifierFlags"])), umano(nome) +
+                             f" ({nome})", "utente", breve(p), "globale"))
+    if dati.get("alternateDefaultShortcuts"):
+        voci.append(voce("Rectangle", "(predefiniti)", "scorciatoie predefinite di Rectangle (insieme «Rectangle»): "
+                         "non sono nel file, vedi le impostazioni dell'app", "predefinito", breve(p), "globale",
+                         nota="lacuna: la lista ufficiale è solo un'immagine nel README"))
+    return voci
+
+
+def claude_desktop():
+    """Only quickEntryShortcut, a key: nothing else of that file is read into the index."""
+    p = casa("Library/Application Support/Claude/claude_desktop_config.json")
+    dati = leggi_json(p)
+    sc = (dati.get("preferences") or {}).get("quickEntryShortcut", dati.get("quickEntryShortcut"))
+    acc = sc.get("accelerator") if isinstance(sc, dict) else sc
+    if not isinstance(acc, str) or not acc:
+        return []
+    return [voce("Claude Desktop", norma(acc), "Quick entry: apre la casella per una nuova chat da ogni app",
+                 "utente", breve(p) + " (quickEntryShortcut)", "globale",
+                 nota="predefinito: doppio tocco di Option")]
+
+
+def codex():
+    """Codex CLI: tui.keymap in config.toml, when the user sets one."""
+    p = casa(".codex/config.toml")
+    with open(p, "rb") as f:
+        tui = tomllib.load(f).get("tui") or {}
+    voci = []
+    for contesto, mappa in (tui.get("keymap") or {}).items():
+        if not isinstance(mappa, dict):
+            continue
+        for azione, tasti in mappa.items():
+            for t in tasti if isinstance(tasti, list) else [tasti]:
+                voci.append(voce("Codex", norma(str(t).replace("-", "+")), umano(azione) + f" ({azione})", "utente",
+                                 breve(p), "terminale", contesto=f"tui.keymap.{contesto}"))
+    if tui.get("vim_mode_default"):
+        voci.append(voce("Codex", "esc", "modo Vim attivo all'avvio (tui.vim_mode_default = true): Esc passa al "
+                         "modo normale", "utente", breve(p), "terminale"))
+    return voci
+
+
+def zed():
+    voci = []
+    impostazioni = casa(".config/zed/settings.json")
+    keymap = casa(".config/zed/keymap.json")
+    if os.path.exists(keymap):
+        testo = re.sub(r"(?m)^\s*//.*$", "", open(keymap, encoding="utf-8").read())
+        for blocco in json.loads(re.sub(r",(\s*[}\]])", r"\1", testo)):
+            for t, azione in (blocco.get("bindings") or {}).items():
+                voci.append(voce("Zed", norma(t.replace("-", "+")), json.dumps(azione, ensure_ascii=False).strip('"'),
+                                 "utente", breve(keymap), "app", contesto=blocco.get("context")))
+    if os.path.exists(impostazioni):
+        testo = open(impostazioni, encoding="utf-8").read()
+        m = re.search(r'"base_keymap"\s*:\s*"([^"]+)"', testo)
+        voci.append(voce("Zed", "(mappa)", f"mappa di base «{m[1] if m else 'Zed'}»"
+                         + ("" if voci else ", nessun tasto personale (manca ~/.config/zed/keymap.json)"),
+                         "utente", breve(impostazioni), "app",
+                         nota="lacuna: i tasti predefiniti di Zed (default-macos.json) non sono in elenco"))
+    return voci
+
+
+def kyria():
+    """The Kyria's layers from the generated Kyria page (layer/tastiera-layer.html, from the current .vil)."""
+    p = casa("personal/personalizzazioni/kyria/layer/tastiera-layer.html")
+    testo = open(p, encoding="utf-8").read()
+    i = testo.find('{"layers"')
+    if i < 0:
+        raise RuntimeError("nessun dato dei layer nella pagina della Kyria")
+    dati, _ = json.JSONDecoder().raw_decode(testo[i:])
+    base = next((l for l in dati["layers"] if l["id"] == "base"), {"keys": {}})
+    etichetta = {k: (v.get("eff") or k).split(" ")[0] for k, v in base["keys"].items()}
+    voci = []
+    for layer in dati["layers"]:
+        for kid, k in layer["keys"].items():
+            if k.get("free") or k.get("trns"):
+                continue
+            nome = f"{layer['name']} {etichetta.get(kid, kid)}"
+            descr = " · ".join(x for x in (k.get("eff"), k.get("tm") if k.get("tm") not in (None, "—") else None,
+                                           f"nvim: {k['nv']}" if k.get("nv") not in (None, "—") else None) if x)
+            gesti = k.get("td") or {}
+            if gesti:
+                for gesto, g in gesti.items():
+                    manda = kyria_manda(g.get("cmd", ""))
+                    voci.append(voce("Kyria", f"{nome} {gesto}", f"→ {manda} · {g.get('eff') or ''} · {descr}",
+                                     "utente", breve(p), "tastiera", contesto=f"layer {layer['name']}",
+                                     nota=f"manda {manda}"))
+                continue
+            cmd = k.get("cmd", "")
+            if cmd.startswith("tieni: layer") or cmd in ("", "—", "▽"):
+                if cmd.startswith("tieni"):
+                    voci.append(voce("Kyria", nome, cmd, "utente", breve(p), "tastiera", contesto=f"layer {layer['name']}"))
+                continue
+            manda = kyria_manda(cmd)
+            if layer["id"] == "base" and len(manda) == 1 and not descr.strip(manda.upper()):
+                continue  # a plain letter of the Base layer
+            voci.append(voce("Kyria", nome, f"→ {manda}" + (f" · {descr}" if descr else ""), "utente", breve(p),
+                             "tastiera", contesto=f"layer {layer['name']}", nota=f"manda {manda}"))
+    return voci
+
+
+KYRIA_NOMI = {"Invio": "enter", "Spazio": "space", "Bksp": "backspace", "Canc": "delete", "Esc": "esc",
+              "Tab": "tab", "PgSu": "pageup", "PgGiù": "pagedown", "Fine": "end", "Home": "home"}
+
+
+def kyria_manda(cmd):
+    """Ctrl+Option+H -> ctrl+alt+h; a macro of several keys stays as written."""
+    if " · " in cmd or not cmd:
+        return cmd
+    parti = cmd.split("+")
+    parti[-1] = KYRIA_NOMI.get(parti[-1], parti[-1])
+    return norma("+".join(parti)) if len(parti[-1]) <= 9 else cmd
+
+
+HAMMERSPOON_AZIONI = {
+    "toggleSystemAppearance": "cambia il tema di macOS (chiaro/scuro)",
+    "kyriaLocale": "apre o nasconde la mappa della Kyria (copia locale in Chrome)",
+    "kyriaClaude": "apre la pagina «Kyria» su claude.ai",
+    "screenshotArea": "screenshot di un'area (come cmd+shift+4)",
+    "screenshotStrumento": "strumento screenshot (come cmd+shift+5)",
+    "brudrAllarga": "brudr: il pane col cursore al 60% della larghezza (ripetere ripristina)",
+}
+
+
+def hammerspoon():
+    p = casa(".hammerspoon/init.lua")
+    testo = open(p, encoding="utf-8").read()
+    f = breve(p)
+    voci = []
+
+    def mods(lista):
+        return re.findall(r'"(\w+)"', lista)
+
+    for m in re.finditer(r'^hs\.hotkey\.bind\(\s*\{([^}]*)\}\s*,\s*"([^"]+)"\s*,\s*([\w.]+)', testo, re.M):
+        t = "+".join([*mods(m[1]), m[2]])
+        voci.append(voce("Hammerspoon", norma(t), HAMMERSPOON_AZIONI.get(m[3], m[3]), "utente", f, "globale"))
+    hyper = re.search(r"local hyper = \{([^}]*)\}", testo)
+    emoji = re.search(r"local emoji = \{(.*?)\n\}", testo, re.S)
+    if hyper and emoji:
+        for k, car, nota in re.findall(r'^\s*(\w)\s*=\s*"([^"]+)",?\s*(?:--\s*(.*))?$', emoji[1], re.M):
+            voci.append(voce("Hammerspoon", norma("+".join([*mods(hyper[1]), k])), f"scrive {car}" +
+                             (f" · {nota}" if nota else ""), "utente", f, "globale"))
+    dev = re.search(r"local devInClaude = \{(.*?)\n\}", testo, re.S)
+    if dev:
+        for k, ms, chiave, nota in re.findall(r'\{\s*"(\w)"\s*,\s*\{([^}]*)\}\s*,\s*("?\w+"?)\s*\},?\s*(?:--\s*(.*))?$',
+                                              dev[1], re.M):
+            chiave = chiave.strip('"')
+            fisico = {"33": "[", "30": "]"}.get(chiave, chiave)
+            manda = norma("+".join([*mods(ms), fisico]))
+            voci.append(voce("Hammerspoon", norma(f"ctrl+alt+{k}"), f"nell'app Claude diventa {manda}" +
+                             (f" · {nota}" if nota else ""), "utente", f, "app",
+                             contesto="solo con l'app desktop di Claude in primo piano", nota=f"manda {manda}"))
+    codici = re.search(r"local CODICI = \{(.*?)\n\}", testo, re.S)
+    if codici:
+        for nome, azione, nota in re.findall(r'nome = "(\w+)".*?azione = (\w+)\s*\},?\s*(?:--\s*(.*))?$', codici[1], re.M):
+            tasto = {"ctrl": "ctrl", "fn": "fn", "cmdDx": "cmd destro", "altDx": "alt destro",
+                     "altSx": "alt sinistro"}.get(nome, nome)
+            voci.append(voce("Hammerspoon", f"2× {tasto}", HAMMERSPOON_AZIONI.get(azione, azione) +
+                             (f" · {nota}" if nota else ""), "utente", f, "globale", contesto="doppio tocco del modificatore da solo"))
+    return voci
+
+
+# ---------------------------------------------------------------- hand lists (M) and Work
+
+def mano_file():
+    if not os.path.isdir(MANO):
+        return []
+    return sorted(os.path.join(MANO, n) for n in os.listdir(MANO)
+                  if n.endswith(".json") and n != os.path.basename(HERDR_PREDEFINITI))
+
+
+def mano():
+    voci, avvisi = [], []
+    oggi = datetime.date.today()
+    for p in mano_file():
+        try:
+            d = leggi_json(p)
+        except (OSError, ValueError) as e:
+            avvisi.append(f"{breve(p)}: non leggibile ({e})")
+            continue
+        prog, fonte = d.get("programma"), d.get("fonte", breve(p))
+        if d.get("solo_nomi"):  # names for another source's keys (superfile.json), not keys of their own
+            continue
+        try:
+            data = datetime.date.fromisoformat(d.get("data", ""))
+            if (oggi - data).days > VECCHIA:
+                avvisi.append(f"{prog}: lista a mano del {data}, più vecchia di {VECCHIA} giorni: rileggi {fonte}")
+        except ValueError:
+            avvisi.append(f"{prog}: lista a mano senza data ({breve(p)})")
+        for v in d.get("voci", []):
+            if not v.get("tasto"):
+                continue
+            voci.append(voce(v.get("programma", prog), v["tasto"], v.get("azione", ""),
+                             v.get("origine", d.get("origine", "ufficiale")), v.get("fonte", fonte),
+                             v.get("livello", d.get("livello", "app")), contesto=v.get("contesto"),
+                             nota=v.get("nota") or d.get("nota")))
+    return voci, avvisi
+
+
+CAMPI_WORK = ("programma", "tasto", "azione", "fonte")
+
+
+def work():
+    """The Work list written by another session: only text fields, bounded, nothing else kept."""
+    if not os.path.exists(WORK):
+        return [], []
+    try:
+        if os.path.getsize(WORK) > 1024 * 1024:
+            return [], [f"{breve(WORK)}: più di 1 MiB, non letto"]
+        d = leggi_json(WORK)
+    except (OSError, ValueError) as e:
+        return [], [f"{breve(WORK)}: non leggibile ({e})"]
+    righe = d.get("voci") if isinstance(d, dict) else None
+    if not isinstance(righe, list):
+        return [], [f"{breve(WORK)}: manca la lista «voci»"]
+    voci, scartate = [], 0
+    for v in righe[:5000]:
+        if not isinstance(v, dict) or not all(isinstance(v.get(c), str) and v.get(c).strip() for c in CAMPI_WORK):
+            scartate += 1
+            continue
+        pulito = {c: re.sub(r"[\x00-\x1f\x7f]", " ", v[c])[:300] for c in CAMPI_WORK}
+        voci.append(voce(pulito["programma"], norma(pulito["tasto"]), pulito["azione"], "work", pulito["fonte"], "app",
+                         contesto="Work (scritto da un'altra sessione)"))
+    avvisi = [f"{breve(WORK)}: {scartate} voci scartate (servono programma, tasto, azione, fonte)"] if scartate else []
+    return voci, avvisi
+
+
+# ---------------------------------------------------------------- index
+
+# name, reader, files whose change means reading again
+FONTI_D = [
+    ("Herdr", herdr, herdr_file),
+    ("Claude Code", claude_code, lambda: [casa(".claude-brus/keybindings.json")]),
+    ("Pi", pi, pi_file),
+    ("Codex", codex, lambda: [casa(".codex/config.toml")]),
+    ("Claude Desktop", claude_desktop, lambda: [casa("Library/Application Support/Claude/claude_desktop_config.json")]),
+    ("Neovim", neovim, neovim_file),
+    ("Superfile", superfile, lambda: [casa("Library/Application Support/superfile/hotkeys.toml"),
+                                      os.path.join(MANO, "superfile.json")]),
+    ("Fish", fish, fish_file),
+    ("Nushell", nushell, nushell_file),
+    ("Obsidian", obsidian, obsidian_file),
+    ("Zed", zed, lambda: [casa(".config/zed/settings.json"), casa(".config/zed/keymap.json")]),
+    ("macOS", macos, lambda: [casa("Library/Preferences/com.apple.symbolichotkeys.plist")]),
+    ("Kyria", kyria, lambda: [casa("personal/personalizzazioni/kyria/layer/tastiera-layer.html")]),
+    ("Hammerspoon", hammerspoon, lambda: [casa(".hammerspoon/init.lua")]),
+    ("Rectangle", rectangle, lambda: [casa("Library/Preferences/com.knollsoft.Rectangle.plist")]),
+]
+# Programs whose source is not a file of the user's: a missing file is not news.
+FACOLTATIVI = {"Codex", "Claude Desktop", "Zed", "Rectangle", "Obsidian"}
+
+
+def timbro(file):
+    h = hashlib.sha256()
+    for p in file:
+        try:
+            s = os.stat(p)
+            h.update(f"{p}\0{s.st_mtime_ns}\0{s.st_size}\n".encode())
+        except OSError:
+            h.update(f"{p}\0-\n".encode())
+    return h.hexdigest()[:16]
+
+
+def carica():
+    try:
+        d = leggi_json(INDICE)
+        if d.get("versione") == VERSIONE:
+            return d
+    except (OSError, ValueError):
+        pass
+    return {"versione": VERSIONE, "programmi": {}}
+
+
+def scrivi(d):
+    os.makedirs(DATI, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".tasti-", dir=DATI)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False, indent=1)
+        f.write("\n")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, INDICE)
+
+
+def genera(forza=False, voce_avanzamento=None):
+    """Reads again the sources that changed; returns the index and whether it was written."""
+    d = carica()
+    progs = d.setdefault("programmi", {})
+    cambiato = False
+    gruppi = [(nome, lettore, file) for nome, lettore, file in FONTI_D if nome not in SALTA]
+    gruppi.append(("a mano", mano, mano_file))
+    gruppi.append(("Work", work, lambda: [WORK]))
+    for nome, lettore, file in gruppi:
+        try:
+            t = timbro(file())
+        except Exception as e:  # noqa: BLE001 - a source's file list must not stop the others
+            t = f"errore {e}"
+        vecchio = progs.get(nome)
+        if not forza and vecchio and vecchio.get("timbro") == t and not vecchio.get("errore"):
+            continue
+        if voce_avanzamento:
+            voce_avanzamento(nome)
+        stato = {"timbro": t, "letto": datetime.datetime.now().isoformat(timespec="seconds")}
+        try:
+            r = lettore()
+            voci, avvisi = r if isinstance(r, tuple) else (r, [])
+            stato.update(voci=voci, avvisi=avvisi)
+        except FileNotFoundError as e:
+            stato.update(voci=[], avvisi=[] if nome in FACOLTATIVI else [f"{nome}: manca {breve(e.filename or '')}"])
+        except Exception as e:  # noqa: BLE001 - one broken source is reported, the panel still works
+            stato.update(voci=(vecchio or {}).get("voci", []), avvisi=[f"{nome}: non letto ({str(e)[:160]})"],
+                         errore=True)
+        progs[nome] = stato
+        cambiato = True
+    for nome in list(progs):
+        if nome not in {g[0] for g in gruppi}:
+            del progs[nome]
+            cambiato = True
+    if cambiato:
+        d["generato"] = datetime.datetime.now().isoformat(timespec="seconds")
+        scrivi(d)
+    return d, cambiato
+
+
+def tutte(d):
+    voci = [v for p in d.get("programmi", {}).values() for v in p.get("voci", [])]
+    for i, v in enumerate(voci):
+        v["id"] = i
+    return voci
+
+
+def avvisi_di(d):
+    return [a for p in d.get("programmi", {}).values() for a in p.get("avvisi", [])]
+
+
+def un_accordo(t):
+    return " " not in t and "+" in t and not t.startswith("(")
+
+
+def conflitti(voci):
+    """Same chord, two places: a global shortcut takes the key from everyone else; Herdr's own keys never
+    reach the programs in its terminals. Kyria keys are not conflicts: they send the key."""
+    per_tasto = {}
+    for v in voci:
+        chiave = v["tasto"]
+        if v["livello"] == "tastiera" and v.get("nota", "").startswith("manda "):
+            chiave = v["nota"][6:]
+        per_tasto.setdefault(chiave, []).append(v)
+    esito = {}
+    for tasto, gruppo in per_tasto.items():
+        if not un_accordo(tasto):
+            continue
+        globali = [v for v in gruppo if v["livello"] == "globale"]
+        herdr_ = [v for v in gruppo if v["programma"] == "Herdr" and "global" in (v.get("contesto") or "")]
+        for v in gruppo:
+            note = []
+            if v["livello"] == "tastiera":
+                continue
+            for g in globali:
+                if g["programma"] != v["programma"]:
+                    note.append(f"{g['programma']} lo prende prima ({g['azione'][:60]})")
+            if v["livello"] == "terminale":
+                for h in herdr_:
+                    note.append(f"Herdr lo prende prima ({h['azione']})")
+            if note:
+                esito[v["id"]] = sorted(set(note))
+    return esito, per_tasto
+
+
+# ---------------------------------------------------------------- fzf
+
+COLORI = {"utente": "\033[1;33m", "configurato": "\033[33m", "work": "\033[35m", "proposta": "\033[36m"}
+GRIGIO, BLU, FINE = "\033[2m", "\033[34m", "\033[0m"
+
+
+def riga(v, conflitto):
+    prog = v["programma"][:11]
+    segno = "!" if conflitto else ("*" if v["origine"] in ("utente", "configurato", "work") else " ")
+    colore = COLORI.get(v["origine"], "")
+    return (f"{v['id']}\t{BLU}{prog:<11}{FINE} {segno}{colore}{v['tasto']:<17}{FINE} "
+            f"{v['azione']}{GRIGIO}{'  · ' + v['contesto'] if v.get('contesto') else ''}{FINE}")
+
+
+def programmi(d):
+    nomi = []
+    for v in tutte(d):
+        if v["programma"] not in nomi:
+            nomi.append(v["programma"])
+    return nomi
+
+
+def cmd_righe(argv):
+    d = carica()
+    voci = tutte(d)
+    esito, _ = conflitti(voci)
+    filtro = argv[0] if argv and argv[0] not in ("", "Tutti") else None
+    out = sys.stdout
+    for v in voci:
+        if filtro and v["programma"] != filtro:
+            continue
+        out.write(riga(v, v["id"] in esito) + "\n")
+    return 0
+
+
+def cmd_filtro(argv):
+    """fzf transform: the action string that moves the program filter one step."""
+    passo = -1 if argv and argv[0] == "-1" else 1
+    attuale = (os.environ.get("FZF_PROMPT") or "").split(" ›")[0].strip() or "Tutti"
+    nomi = ["Tutti"] + programmi(carica())
+    i = nomi.index(attuale) if attuale in nomi else 0
+    nuovo = nomi[(i + passo) % len(nomi)]
+    io = f"{shlex.quote(sys.executable)} {shlex.quote(os.path.abspath(sys.argv[0]))}"
+    print(f"change-prompt({nuovo} › )+reload({io} righe {shlex.quote(nuovo)})+first")
+    return 0
+
+
+def cmd_scheda(argv):
+    d = carica()
+    voci = tutte(d)
+    try:
+        v = voci[int(argv[0])]
+    except (IndexError, ValueError):
+        return 0
+    esito, per_tasto = conflitti(voci)
+    righe = [f"tasto: {v['tasto']}", f"programma: {v['programma']}", f"azione: {v['azione']}",
+             f"origine: {v['origine']}"]
+    if v.get("contesto"):
+        righe.append(f"contesto: {v['contesto']}")
+    righe.append(f"fonte: {v['fonte']}")
+    if v.get("nota"):
+        righe.append(f"nota: {v['nota']}")
+    if v["id"] in esito:
+        righe.append("conflitti:")
+        righe += [f"  - {c}" for c in esito[v["id"]]]
+    chiave = v["nota"][6:] if v["livello"] == "tastiera" and v.get("nota", "").startswith("manda ") else v["tasto"]
+    altri = [x for x in per_tasto.get(chiave, []) if x is not v and x["programma"] != v["programma"]]
+    if altri:
+        righe.append("lo stesso tasto in:" if v["livello"] != "tastiera" else "lo ricevono:")
+        righe += [f"  - {x['programma']}: {x['azione'][:70]}" for x in altri[:12]]
+    testo = "\n".join(righe) + "\n"
+    bat = programma_eseguibile("bat")
+    if bat and not os.environ.get("BRUDR_TASTI_SENZA_COLORI"):
+        r = subprocess.run([bat, "--language", "yaml", "--color", "always", "--style", "plain", "--paging", "never"],
+                           input=testo, capture_output=True, text=True)
+        if r.returncode == 0:
+            testo = r.stdout
+    sys.stdout.write(testo)
+    return 0
+
+
+def cmd_controlla(_argv):
+    d, _ = genera()
+    voci = tutte(d)
+    esito, _ = conflitti(voci)
+    for a in avvisi_di(d):
+        print(f"avviso: {a}")
+    for i, note in sorted(esito.items()):
+        v = voci[i]
+        print(f"conflitto: {v['programma']} {v['tasto']} ({v['azione'][:50]}): {'; '.join(note)}")
+    print(f"{len(voci)} tasti, {len(esito)} in conflitto, {len(avvisi_di(d))} avvisi")
+    return 0
+
+
+def cmd_mostra(_argv):
+    fzf = programma_eseguibile("fzf")
+    sys.stdout.write("\033[2J\033[HTasti: controllo le fonti…\n")
+    sys.stdout.flush()
+    d, _ = genera(voce_avanzamento=lambda n: (sys.stdout.write(f"  leggo {n}\n"), sys.stdout.flush()))
+    if not fzf:
+        sys.stderr.write("brudr-tasti: fzf non trovato\n")
+        return 127
+    io = os.path.abspath(sys.argv[0])
+    avvisi = avvisi_di(d)
+    intestazione = "Tab programma · Invio dettagli sì/no · Esc rilegge le fonti"
+    if avvisi:
+        intestazione += f" · {len(avvisi)} avvisi (brudr-tasti controlla)"
+    righe = subprocess.run([sys.executable, io, "righe"], capture_output=True, text=True).stdout
+    argv = [fzf, "--ansi", "--exact", "--delimiter", "\t", "--with-nth", "2..",
+            "--prompt", "Tutti › ", "--header", intestazione, "--header-first", "--layout", "reverse",
+            "--info", "inline-right",
+            "--preview", f"{shlex.quote(sys.executable)} {shlex.quote(io)} scheda {{1}}",
+            "--preview-window", "down,45%,wrap,border-top",
+            "--bind", f"tab:transform:{shlex.quote(sys.executable)} {shlex.quote(io)} filtro +1",
+            "--bind", f"shift-tab:transform:{shlex.quote(sys.executable)} {shlex.quote(io)} filtro -1",
+            "--bind", "enter:toggle-preview"]
+    if os.environ.get("BRUDR_TASTI_FILTRO"):  # tests: the same fzf, without a terminal
+        argv += ["--filter", os.environ["BRUDR_TASTI_FILTRO"]]
+    r = subprocess.run(argv, input=righe, text=True)
+    return 0 if r.returncode in (0, 1, 130) else r.returncode
+
+
+def main(argv):
+    comando = argv[0] if argv else "mostra"
+    if comando == "genera":
+        d, cambiato = genera(forza="--forza" in argv)
+        print(f"{len(tutte(d))} tasti in {breve(INDICE)}" + ("" if cambiato else " (nessuna fonte cambiata)"))
+        for a in avvisi_di(d):
+            print(f"avviso: {a}")
+        return 0
+    comandi = {"mostra": cmd_mostra, "righe": cmd_righe, "scheda": cmd_scheda, "filtro": cmd_filtro,
+               "controlla": cmd_controlla}
+    if comando not in comandi:
+        sys.stderr.write(__doc__)
+        return 64
+    return comandi[comando](argv[1:])
+
+
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+    sys.exit(main(sys.argv[1:]))

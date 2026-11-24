@@ -4,7 +4,7 @@
 Usage: crea-layout <herdr-transparent.json> <brudr-pannelli.json>
 
 Same window as the source (look, transparency, sidebar, status), with two changes:
-- the right panel's stack "panel-body": five named terminal blocks and one
+- the right panel's stack "panel-body": six named terminal blocks and one
   native browser block, without a header, on the panel's own gray background;
 - the tab bar block "tabs" runs the `pannelli` mod instead of `tabs`, putting
   the side panel buttons in place of Files and Changes.
@@ -21,6 +21,7 @@ FIGLI = [
     ("neovim", "brudr-nvim"),
     ("changes", "brudr-hunk"),
     ("quota", "brudr-quota"),
+    ("tasti", "brudr-tasti"),
     ("privato", "brudr-privato"),
 ]
 

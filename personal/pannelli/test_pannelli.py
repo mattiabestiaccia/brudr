@@ -28,8 +28,8 @@ PROVA_MOD = os.path.join(QUI, "prova_mod.mjs")
 TRASPARENTE = os.path.join(REPO, "personal", "transparency", "herdr-transparent.json")
 SEGRETO = "FINTO_TOKEN_0000_non_vero"
 PRIVATI = {"spf", "nvim", "privato"}
-TIPI = ["spf", "nvim", "hunk", "quota", "privato"]
-FIGLI = ["files", "neovim", "changes", "quota", "privato", "browser"]
+TIPI = ["spf", "nvim", "hunk", "quota", "tasti", "privato"]
+FIGLI = ["files", "neovim", "changes", "quota", "tasti", "privato", "browser"]
 WEB = {"web": {"url": "https://example.com/"}}
 
 
@@ -72,7 +72,7 @@ class BrudrPannello(Cartella):
     def test_ogni_tipo_parte(self):
         repository(self.tmp)
         attesi = {"spf": "esegue: spf -c ", "nvim": "esegue: %s/nvim" % self.bin, "hunk": "esegue: hunk diff --watch",
-                  "quota": "--tui", "privato": "esegue: fish --private -C "}
+                  "quota": "--tui", "tasti": "esegue: brudr-tasti", "privato": "esegue: fish --private -C "}
         for tipo in TIPI:
             c, out, err = self.pannello(tipo)
             self.assertEqual(c, 0, (tipo, err))
@@ -91,7 +91,7 @@ class BrudrPannello(Cartella):
         self.assertEqual(oct(os.stat(self.ptmp).st_mode & 0o777), "0o700")
 
     def test_non_privati_senza_tmp_ne_path_privato(self):
-        for tipo in ("hunk", "quota"):
+        for tipo in ("hunk", "quota", "tasti"):
             _, out, _ = self.pannello(tipo)
             self.assertEqual(self.campo(out, "TMPDIR"), "")
             self.assertNotIn(self.bin, self.campo(out, "PATH"))
@@ -312,7 +312,7 @@ class Layout(unittest.TestCase):
         self.assertEqual(figli["browser"]["content"], WEB)
         self.assertEqual({k: v["content"]["terminal"] for k, v in figli.items() if k != "browser"},
                          {"files": "brudr-spf", "neovim": "brudr-nvim", "changes": "brudr-hunk",
-                          "quota": "brudr-quota", "privato": "brudr-privato"})
+                          "quota": "brudr-quota", "tasti": "brudr-tasti", "privato": "brudr-privato"})
         self.assertEqual([k for k, v in figli.items() if "background" in v], [], "Private has the panel's gray too")
         panel = trova(d, "panel")
         self.assertIsNotNone(panel)
@@ -375,7 +375,7 @@ fn main() {
     assert_eq!(shown.find("neovim").and_then(layout::Node::terminal), Some("brudr-nvim"), "clicks kept on reload keep the block");
     assert!(shown.select("panel-body", "neovim"), "layout.select finds the block again");
     println!("save ok");
-    for (id, name) in [("files", "brudr-spf"), ("neovim", "brudr-nvim"), ("changes", "brudr-hunk"), ("quota", "brudr-quota"), ("privato", "brudr-privato")] {
+    for (id, name) in [("files", "brudr-spf"), ("neovim", "brudr-nvim"), ("changes", "brudr-hunk"), ("quota", "brudr-quota"), ("tasti", "brudr-tasti"), ("privato", "brudr-privato")] {
         assert_eq!(n.find(id).and_then(layout::Node::terminal), Some(name), "{id}");
     }
     let browser = n.find("browser").unwrap();
@@ -444,7 +444,7 @@ class ModPannelli(unittest.TestCase):
         self.assertEqual({t for _, t, p in mod if p == "true"}, PRIVATI)
         programma = open(PANNELLO).read()
         self.assertIn("spf|nvim|privato) privato=1", programma)
-        self.assertIn("hunk|quota) privato=0", programma)
+        self.assertIn("hunk|quota|tasti) privato=0", programma)
 
     def test_terminali_privati_dalla_nascita_e_senza_keep(self):
         self.assertIn('args.push("--label", `${PRIVATE}=1`)', self.js)

@@ -1,0 +1,294 @@
+{
+ "programma": "Superfile",
+ "livello": "terminale",
+ "origine": "predefinito",
+ "fonte": "https://superfile.dev/list/hotkey-list/",
+ "copia": "~/KB/keybindings/superfile-hotkey-list.md",
+ "data": "2026-11-23",
+ "nota": "serve solo a dare il nome alle azioni: i tasti veri dell'utente vengono da hotkeys.toml",
+ "solo_nomi": true,
+ "voci": [
+  {
+   "tasto": "enter, right, l",
+   "azione": "Confirm selected item",
+   "variabile": "confirm",
+   "contesto": "General"
+  },
+  {
+   "tasto": "q, esc",
+   "azione": "Quit modal or superfile",
+   "variabile": "quit",
+   "contesto": "General"
+  },
+  {
+   "tasto": "Q",
+   "azione": "Quit superfile and cd to current folder",
+   "variabile": "cd_quit",
+   "contesto": "General"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Confirm typing",
+   "variabile": "confirm_typing",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+c, esc",
+   "azione": "Cancel typing",
+   "variabile": "cancel_typing",
+   "contesto": "General"
+  },
+  {
+   "tasto": "?",
+   "azione": "Open help menu (hotkey list)",
+   "variabile": "open_help_menu",
+   "contesto": "General"
+  },
+  {
+   "tasto": ":",
+   "azione": "Open prompt in shell mode",
+   "variabile": "open_command_line",
+   "contesto": "General"
+  },
+  {
+   "tasto": ">",
+   "azione": "Open prompt in spf mode",
+   "variabile": "open_spf_prompt",
+   "contesto": "General"
+  },
+  {
+   "tasto": "z",
+   "azione": "Open zoxide navigation modal",
+   "variabile": "open_zoxide",
+   "contesto": "General"
+  },
+  {
+   "tasto": "n",
+   "azione": "Create new file panel (at home)",
+   "variabile": "create_new_file_panel",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "N",
+   "azione": "Split focused file panel",
+   "variabile": "split_file_panel",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "w",
+   "azione": "Close the focused file panel",
+   "variabile": "close_file_panel",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "f",
+   "azione": "Toggle file preview panel",
+   "variabile": "toggle_file_preview_panel",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "o",
+   "azione": "Open sort options menu",
+   "variabile": "open_sort_options_menu",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "R",
+   "azione": "Toggle reverse sort",
+   "variabile": "toggle_reverse_sort",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "F",
+   "azione": "Toggle footer",
+   "variabile": "toggle_footer",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "tab, L",
+   "azione": "Focus on the next file panel",
+   "variabile": "next_file_panel",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "shift+left, H",
+   "azione": "Focus on the previous file panel",
+   "variabile": "previous_file_panel",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "p",
+   "azione": "Focus on the processbar panel",
+   "variabile": "focus_on_process_bar",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "s",
+   "azione": "Focus on the sidebar",
+   "variabile": "focus_on_sidebar",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "m",
+   "azione": "Focus on the metadata panel",
+   "variabile": "focus_on_metadata",
+   "contesto": "Panel navigation"
+  },
+  {
+   "tasto": "up, k",
+   "azione": "Up",
+   "variabile": "list_up",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "down, j",
+   "azione": "Down",
+   "variabile": "list_down",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "pgup",
+   "azione": "Page up",
+   "variabile": "page_up",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "pgdown",
+   "azione": "Page down",
+   "variabile": "page_down",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "h, left, backspace",
+   "azione": "Return to parent folder",
+   "variabile": "parent_directory",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "enter, right, l",
+   "azione": "Select or deselect the item under the cursor",
+   "variabile": "confirm (selection mode only)",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "A",
+   "azione": "Select all items in focused file panel",
+   "variabile": "file_panel_select_all_items (selection mode only)",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "shift+up, K",
+   "azione": "Select up from your cursor",
+   "variabile": "file_panel_select_mode_items_select_up (selection mode only)",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "shift+down, J",
+   "azione": "Select down from your cursor",
+   "variabile": "file_panel_select_mode_items_select_down (selection mode only)",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": ".",
+   "azione": "Toggle dot file display",
+   "variabile": "toggle_dot_file",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "/",
+   "azione": "Toggle active search bar",
+   "variabile": "search_bar",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "v",
+   "azione": "Change between selection mode or normal mode",
+   "variabile": "change_panel_mode",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "P",
+   "azione": "Pin or Unpin current folder to sidebar",
+   "variabile": "pinned_directory",
+   "contesto": "Panel movement"
+  },
+  {
+   "tasto": "ctrl+n",
+   "azione": "Create file or folder (end with / to create a folder)",
+   "variabile": "file_panel_item_create",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "ctrl+r",
+   "azione": "Rename file or folder",
+   "variabile": "file_panel_item_rename",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "ctrl+c",
+   "azione": "Copy selected items to the clipboard",
+   "variabile": "copy_items",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "ctrl+x",
+   "azione": "Cut selected items to the clipboard",
+   "variabile": "cut_items",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "ctrl+v, ctrl+w",
+   "azione": "Paste clipboard items into the current file panel",
+   "variabile": "paste_items",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "ctrl+d, delete",
+   "azione": "Delete selected items",
+   "variabile": "delete_items",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "D",
+   "azione": "Permanently delete selected items",
+   "variabile": "permanently_delete_items",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "ctrl+p",
+   "azione": "Copy current or selected file/directory paths",
+   "variabile": "copy_path",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "c",
+   "azione": "Copy current working directory",
+   "variabile": "copy_present_working_directory",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "ctrl+e",
+   "azione": "Extract compressed file",
+   "variabile": "extract_file",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "ctrl+a",
+   "azione": "Zip file or folder to .zip file",
+   "variabile": "compress_file",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "e",
+   "azione": "Open file with your default editor",
+   "variabile": "open_file_with_editor",
+   "contesto": "File operations"
+  },
+  {
+   "tasto": "E",
+   "azione": "Open current directory with default editor",
+   "variabile": "open_current_directory_with_editor",
+   "contesto": "File operations"
+  }
+ ]
+}

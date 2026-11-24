@@ -4,7 +4,8 @@
 # The mod starts it once per panel, in a terminal with a name:
 #   hc run --bg --json --no-parent --rm --name brudr-<tipo> --label brudr.panel=<tipo> \
 #          [--label brudr.private=1] --cwd <folder> -- ~/bin/brudr-pannello <tipo>
-# Types: spf (Superfile), nvim (Neovim), hunk, quota (quota-axi --tui), privato (a shell).
+# Types: spf (Superfile), nvim (Neovim), hunk, quota (quota-axi --tui), tasti (brudr-tasti:
+# the user's key bindings, searched with fzf), privato (a shell).
 # Private: spf, nvim, privato. The agents' terminal reader refuses terminals with the brudr.private label.
 #
 # It never ends on its own: brudr drops a layout block whose program exits
@@ -81,8 +82,8 @@ fi
 tipo=${1:-}
 case $tipo in
   spf|nvim|privato) privato=1 ;;
-  hunk|quota) privato=0 ;;
-  *) echo "usage: brudr-pannello spf|nvim|hunk|quota|privato" >&2; exit 64 ;;
+  hunk|quota|tasti) privato=0 ;;
+  *) echo "usage: brudr-pannello spf|nvim|hunk|quota|tasti|privato" >&2; exit 64 ;;
 esac
 
 pulisci_schermo() { printf '\033[3J\033[H\033[2J'; }
@@ -183,6 +184,9 @@ avvia() {
     quota)
       # quota-brs is quota-axi --tui with the user's Claude profiles in his order.
       if command -v quota-brs >/dev/null 2>&1; then esegui quota-brs --tui; else esegui quota-axi --tui; fi ;;
+    # The index is read again when a source changed: Esc in fzf ends brudr-tasti,
+    # the loop below starts it again with the new keys.
+    tasti) esegui brudr-tasti ;;
     # config.fish moves ~/bin and /opt/homebrew/bin to the front of PATH
     # (fish_add_path --move): -C runs after it and puts the private nvim first again.
     privato) esegui fish --private -C 'set -gx PATH $BRUDR_PANNELLI_BIN $PATH' ;;

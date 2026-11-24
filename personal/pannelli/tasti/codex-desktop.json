@@ -1,0 +1,406 @@
+{
+ "programma": "Codex desktop",
+ "livello": "app",
+ "origine": "ufficiale",
+ "fonte": "https://learn.chatgpt.com/docs/reference/commands",
+ "copia": "~/KB/keybindings/codex-app-commands.md",
+ "data": "2026-11-23",
+ "nota": "lista ufficiale, sezione macOS",
+ "voci": [
+  {
+   "tasto": "shift+cmd+p",
+   "azione": "Open command menu",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+k",
+   "azione": "Open command menu",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+,",
+   "azione": "Open settings",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+/",
+   "azione": "Open keyboard shortcuts",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+o",
+   "azione": "Open folder (Codex and Work only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+[",
+   "azione": "Navigate back",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+]",
+   "azione": "Navigate forward",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd++",
+   "azione": "Increase font size",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+-",
+   "azione": "Decrease font size",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+0",
+   "azione": "Reset font size",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+b",
+   "azione": "Toggle sidebar",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+s",
+   "azione": "Toggle sidebar",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+j",
+   "azione": "Toggle bottom panel (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+l",
+   "azione": "Clear terminal (When the terminal is focused)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+k",
+   "azione": "Clear terminal (When the terminal is focused)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+esc",
+   "azione": "Clear all unread indicators (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+z",
+   "azione": "Undo last app action",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+z",
+   "azione": "Redo last app action",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+w",
+   "azione": "Close current tab or window",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+t",
+   "azione": "Reopen closed tab",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+w",
+   "azione": "Close other tabs",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+cmd+f",
+   "azione": "Toggle full screen",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+q",
+   "azione": "Quit the app",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shortcut",
+   "azione": "Chats",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+n",
+   "azione": "New chat",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+o",
+   "azione": "New chat",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+o",
+   "azione": "New standalone chat (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+n",
+   "azione": "Quick chat (ChatGPT only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+n",
+   "azione": "New temporary chat (ChatGPT only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+a",
+   "azione": "Archive chat",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+u",
+   "azione": "Mark chat as unread",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+p",
+   "azione": "Pin or unpin chat",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+r",
+   "azione": "Rename chat",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+s",
+   "azione": "Open side chat (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "not assigned by default",
+   "azione": "Search chats (Assign one in Settings > Keyboard Shortcuts)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+f",
+   "azione": "Find in chat",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+g",
+   "azione": "Find next match",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+g",
+   "azione": "Find previous match",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+shift+tab",
+   "azione": "Previous chat or tab",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+[",
+   "azione": "Previous chat or tab",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+left",
+   "azione": "Previous chat or tab",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+tab",
+   "azione": "Next chat or tab",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+]",
+   "azione": "Next chat or tab",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+right",
+   "azione": "Next chat or tab",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+a",
+   "azione": "Next chat needing attention (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+1–6",
+   "azione": "Open recent chat 1–6",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+1–9",
+   "azione": "Go to chat 1–9",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shortcut",
+   "azione": "Input and modes",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+shift+m",
+   "azione": "Open model picker",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+cmd+m",
+   "azione": "Open recent models",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+shift+cmd+o",
+   "azione": "Open project picker",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+shift+v",
+   "azione": "Start voice chat (When voice chat is available)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "up",
+   "azione": "Restore previous composer prompt (When the composer is empty)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Approve request (When an approval request is open)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Decline request (When an approval request is open)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+1",
+   "azione": "Switch to Chat, Work, or Codex (In the order shown)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+2",
+   "azione": "Switch to Chat, Work, or Codex (In the order shown)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+3",
+   "azione": "Switch to Chat, Work, or Codex (In the order shown)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+u",
+   "azione": "Toggle Activity view (When Activity is available)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shortcut",
+   "azione": "Workspace and browser",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+d",
+   "azione": "Run environment action 1 (When the environment defines a primary action)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+p",
+   "azione": "Search files (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+e",
+   "azione": "Toggle file tree (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "ctrl+shift+g",
+   "azione": "Open review tab (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+b",
+   "azione": "Switch between chat and tabs (In full view; shows or hides tabs in split view)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+t",
+   "azione": "Open browser tab (When the built-in browser is available)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+b",
+   "azione": "Cycle workspace layout (Full view, split view, or hidden tabs)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+f",
+   "azione": "Enter or exit full view",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+l",
+   "azione": "Go to line or focus browser address bar (Depends on the focused view)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+left",
+   "azione": "Browser back (When the built-in browser is focused)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+right",
+   "azione": "Browser forward (When the built-in browser is focused)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+r",
+   "azione": "Reload browser page (When the built-in browser is focused)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+r",
+   "azione": "Reload browser page without cache (When the built-in browser is focused)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+c",
+   "azione": "Copy browser URL (When the built-in browser is focused)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+.",
+   "azione": "Toggle browser browse or comment mode (When browser commenting is available)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+shift+cmd+c",
+   "azione": "Copy conversation path (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "alt+cmd+l",
+   "azione": "Copy chat deep link",
+   "contesto": "General"
+  },
+  {
+   "tasto": "shift+cmd+c",
+   "azione": "Copy working directory (Codex only)",
+   "contesto": "General"
+  },
+  {
+   "tasto": "cmd+⌘",
+   "azione": "Take an Appshot (press both keys simultaneously)",
+   "contesto": "General"
+  }
+ ]
+}

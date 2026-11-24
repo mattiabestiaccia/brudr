@@ -1,0 +1,426 @@
+{
+ "programma": "Chrome",
+ "livello": "app",
+ "origine": "ufficiale",
+ "fonte": "https://support.google.com/chrome/answer/157179",
+ "copia": "~/KB/keybindings/chrome-scorciatoie.md",
+ "data": "2026-11-23",
+ "nota": "lista ufficiale completa, sezione Mac",
+ "voci": [
+  {
+   "tasto": "cmd+n",
+   "azione": "Open a new window",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+n",
+   "azione": "Open a new window in Incognito mode",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+t",
+   "azione": "Open a new tab, and jump to it",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+t",
+   "azione": "Reopen previously closed tabs in the order they were closed",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+right",
+   "azione": "Jump to the next open tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+left",
+   "azione": "Jump to the previous open tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+1",
+   "azione": "Jump to a specific tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+2",
+   "azione": "Jump to a specific tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+3",
+   "azione": "Jump to a specific tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+4",
+   "azione": "Jump to a specific tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+5",
+   "azione": "Jump to a specific tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+6",
+   "azione": "Jump to a specific tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+7",
+   "azione": "Jump to a specific tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+8",
+   "azione": "Jump to a specific tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+9",
+   "azione": "Jump to the last tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+[",
+   "azione": "Open the previous page in your browsing history for the current tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+left",
+   "azione": "Open the previous page in your browsing history for the current tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+]",
+   "azione": "Open the next page in your browsing history for the current tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+right",
+   "azione": "Open the next page in your browsing history for the current tab",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+w",
+   "azione": "Close the current tab or pop-up",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+w",
+   "azione": "Close the current window",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+m",
+   "azione": "Minimize the window",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+h",
+   "azione": "Hide Google Chrome",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "cmd+q",
+   "azione": "Quit Google Chrome",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "ctrl+shift+pageup",
+   "azione": "Move tabs right or left",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "ctrl+shift+pagedown",
+   "azione": "Move tabs right or left",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "fn+f",
+   "azione": "Turn on full-screen mode",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "fn+f",
+   "azione": "Turn off full-screen mode",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Turn off full-screen mode",
+   "contesto": "Tab & window shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+b",
+   "azione": "Show or hide the Bookmarks Bar",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+b",
+   "azione": "Open the Bookmark Manager",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "cmd+,",
+   "azione": "Open the Settings page in a new tab",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "cmd+y",
+   "azione": "Open the History page in a new tab",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+j",
+   "azione": "Open the Downloads page in a new tab",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "cmd+f",
+   "azione": "Open the Find Bar to search the current page",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "cmd+g",
+   "azione": "Jump to the next match to your Find Bar search",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+g",
+   "azione": "Jump to the previous match to your Find Bar search",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "cmd+e",
+   "azione": "When Find Bar is open, search for selected text",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+i",
+   "azione": "Open Developer Tools",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+delete",
+   "azione": "Open the Delete Browsing Data options",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+m",
+   "azione": "Log in as a different user, browse as a Guest, or access payment and password info",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "ctrl+f2",
+   "azione": "Jump to the main menu bar",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+up",
+   "azione": "Cycle focus to unfocused dialog (if showing) and all toolbars",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "down",
+   "azione": "Cycle focus to unfocused dialog (if showing) and all toolbars",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "alt+shift+cmd+i",
+   "azione": "Open a feedback form",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "f7",
+   "azione": "Turn on caret browsing",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "alt+shift+cmd+a",
+   "azione": "Focus on inactive dialogs",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+n",
+   "azione": "Open split view in the active tab",
+   "contesto": "Google Chrome feature shortcuts"
+  },
+  {
+   "tasto": "Return",
+   "azione": "Search with your default search engine",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Search using a different search engine",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "Return",
+   "azione": "Add www. and .com to a site name, and open it in the current tab",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "ctrl+shift+enter",
+   "azione": "Add www. and .com to a site name, and open it in a new window",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "Return",
+   "azione": "Open the website in a new background tab",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "cmd+l",
+   "azione": "Jump to the address bar",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "down",
+   "azione": "Remove predictions from your address bar",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "Delete",
+   "azione": "Remove predictions from your address bar",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "delete",
+   "azione": "Remove predictions from your address bar",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "fn+delete",
+   "azione": "Remove predictions from your address bar",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "ctrl+f5",
+   "azione": "Move cursor to the address bar",
+   "contesto": "Use the following shortcuts in the address bar"
+  },
+  {
+   "tasto": "shift+cmd+i",
+   "azione": "Compose a new email message with a link to the current page",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "cmd+p",
+   "azione": "Open options to print the current page",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "cmd+s",
+   "azione": "Open options to save the current page",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+p",
+   "azione": "Open the Page Setup dialog",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+r",
+   "azione": "Reload your current page, ignoring cached content",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Stop the page loading",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Browse clickable items moving forward",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "shift+tab",
+   "azione": "Browse clickable items moving backward",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "cmd+o",
+   "azione": "Open a file from your computer in Google Chrome",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+u",
+   "azione": "Display non-editable HTML source code for the current page",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+j",
+   "azione": "Open the JavaScript Console",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "cmd+d",
+   "azione": "Save your current webpage as a bookmark",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+d",
+   "azione": "Save all open tabs as bookmarks in a new folder",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "cmd++",
+   "azione": "Make everything on the page bigger",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "cmd+-",
+   "azione": "Make everything on the page smaller",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "cmd+0",
+   "azione": "Return everything on the page to the default size",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "space",
+   "azione": "Scroll down a webpage, a screen at a time",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "shift+space",
+   "azione": "Scroll up a webpage, a screen at a time",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "alt+cmd+f",
+   "azione": "Search the web",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "alt+left",
+   "azione": "Move your cursor to the beginning of the previous word in a text field",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "alt+right",
+   "azione": "Move your cursor to the back of the next word in a text field",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "alt+delete",
+   "azione": "Delete the previous word in a text field",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "shift+cmd+h",
+   "azione": "Open your home page in the current tab",
+   "contesto": "Webpage shortcuts"
+  },
+  {
+   "tasto": "esc",
+   "azione": "Return a tab to its original position",
+   "contesto": "The following shortcuts require you to use your mouse"
+  }
+ ]
+}

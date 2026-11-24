@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+"""estrai-kb: writes the hand lists (M) of the Tasti panel from the official pages saved in the user's KB.
+
+Usage: python3 -B personal/pannelli/tasti/estrai-kb [KB folder]   (default ~/KB/keybindings)
+
+Run it by hand when a page is saved again; it rewrites the JSON files next to it,
+each with the page address, the local copy and the date of the copy. brudr-tasti
+never reads the KB: it reads these files, installed with the panel.
+Keys go through brudr-tasti's own spelling (ctrl+alt+shift+cmd+key).
+"""
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import sys
+
+sys.dont_write_bytecode = True
+QUI = os.path.dirname(os.path.abspath(__file__))
+_loader = importlib.machinery.SourceFileLoader("brudr_tasti", os.path.join(QUI, "..", "brudr-tasti"))
+_spec = importlib.util.spec_from_loader("brudr_tasti", _loader)
+T = importlib.util.module_from_spec(_spec)
+_loader.exec_module(T)
+KB = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/KB/keybindings")
+
+
+def pagina(nome):
+    testo = open(os.path.join(KB, nome), encoding="utf-8").read()
+    meta = dict(re.findall(r'^(source|created): "?([^"\n]+)"?$', testo, re.M))
+    return testo, meta.get("source", ""), meta.get("created", "")
+
+
+def pulisci(t):
+    t = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", t)          # images
+    t = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", t)        # links
+    t = re.sub(r"</?kbd>|&nbsp;", "", t)
+    t = t.replace("\\_", "_").replace("\\*", "*").replace("\\<", "<")
+    return " ".join(t.replace("**", "").replace("`", "").split()).strip()
+
+
+def tabelle(testo):
+    """(headings, header cells, row cells) for every Markdown table row."""
+    titoli, intestazione, dentro, ultima = {}, None, False, ""
+    for riga in testo.splitlines():
+        m = re.match(r"^(#+)\s+(.*)", riga)
+        if m:
+            livello = len(m[1])
+            titoli = {k: v for k, v in titoli.items() if k < livello}
+            titoli[livello] = pulisci(m[2])
+            dentro = False
+            continue
+        r = riga.strip()
+        if not r.startswith("|"):
+            if r:
+                dentro, ultima = False, pulisci(r)
+            continue
+        celle = [c.strip() for c in r.strip("|").split("|")]
+        if all(re.fullmatch(r":?-+:?", c) for c in celle if c):
+            continue
+        if not dentro:
+            intestazione, dentro = [pulisci(c) for c in celle], True
+            continue
+        yield dict(titoli, riga=ultima), intestazione, celle
+
+
+def alternative(cella):
+    """The keys in a cell: «A or B», «A, B» -> [A, B]; bold or code spans first."""
+    pezzi = re.findall(r"\*\*(.+?)\*\*|`([^`]+)`", cella)
+    pezzi = [a or b for a, b in pezzi]
+    if not pezzi:
+        pezzi = [cella]
+    uscita = []
+    for p in pezzi:
+        for q in re.split(r"\s+or\s+|,\s+(?=\S)", pulisci(p)):
+            q = q.strip()
+            if q and q.lower() not in ("(unbound)", "_(none)_", "(none)", "none"):
+                uscita.append(q)
+    return uscita
+
+
+def scrivi(nome, programma, fonte, copia, data, voci, livello="app", origine="ufficiale", nota=None, **altro):
+    d = {"programma": programma, "livello": livello, "origine": origine, "fonte": fonte,
+         "copia": "~/KB/keybindings/" + copia, "data": data}
+    if nota:
+        d["nota"] = nota
+    d.update(altro)
+    d["voci"] = [v for v in voci if v.get("tasto")]
+    with open(os.path.join(QUI, nome), "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False, indent=1)
+        f.write("\n")
+    print(f"{nome}: {len(d['voci'])} voci")
+
+
+def tasto_chrome(t):
+    t = re.sub(r"\s+and\s+", "+", t)
+    t = re.sub(r"(?<=\S)\s*\+\s*$", "", t) if not t.endswith("++") else t
+    t = re.sub(r"\s*\+\s*Select a file|\s*\+?\s*Click a link", "", t)
+    return T.norma(t.replace(" then ", " "))
+
+
+def chrome():
+    testo, fonte, data = pagina("chrome-scorciatoie.md")
+    mac = testo[testo.index("\n## Mac"):testo.index("\n## Get more help")].replace("****", "")
+    voci = []
+    for titoli, intest, celle in tabelle(mac):
+        if len(celle) < 2 or intest[:2] != ["Action", "Shortcut"]:
+            continue
+        azione, scorciatoia = pulisci(celle[0]), celle[1]
+        if "mouse only" in azione or "Click" in scorciatoia or not re.search(r"\*\*", scorciatoia):
+            continue
+        tasti = [tasto_chrome(p) for p in alternative(scorciatoia)]
+        if "through" in pulisci(scorciatoia):
+            tasti = [T.norma(f"cmd+{n}") for n in range(1, 9)]
+        for t in [x for x in tasti if x not in ("", "+", "⌘")]:
+            voci.append({"tasto": t, "azione": azione, "contesto": titoli["riga"].split(":")[0] or "Mac"})
+    # Rows between the tables, written as text: the table header line before each table names it.
+    scrivi("chrome.json", "Chrome", fonte, "chrome-scorciatoie.md", data, voci,
+           nota="lista ufficiale completa, sezione Mac")
+
+
+def youtube():
+    testo, fonte, data = pagina("youtube-scorciatoie.md")
+    voci = []
+    for _, intest, celle in tabelle(testo):
+        if len(celle) < 2:
+            continue
+        tasto, azione = pulisci(celle[0]), pulisci(celle[1])
+        if "Mac" in tasto:  # «Ctrl + → (Windows) or ⌥ + → (Mac)»
+            tasto = tasto.split(" or ")[-1].replace("(Mac)", "")
+        tasti = [x.strip() for x in re.split(r"\s+or\s+|/(?=\w)", tasto) if x.strip()] if "Media Key" not in tasto \
+            else [tasto]
+        for t in tasti:
+            voci.append({"tasto": T.norma(t) if "Media Key" not in t and "seek bar" not in t else t,
+                         "azione": azione, "contesto": "lettore"})
+    scrivi("youtube.json", "YouTube", fonte, "youtube-scorciatoie.md", data, voci,
+           nota="lista ufficiale completa (YouTube nel browser)")
+
+
+def tasto_apple(t):
+    t = t.replace("–", "-")
+    t = re.sub(r"\s*\(([^)]*)\)$", "", t)  # «Comma (,)» keeps the name
+    parole = re.split(r"-(?=[A-Za-z])", t)
+    return T.norma("+".join(p.strip() for p in parole))
+
+
+def macos():
+    testo, fonte, data = pagina("macos-scorciatoie.md")
+    parte = testo[testo.index("\n## Cut, copy"):testo.index("\n## App-specific")]
+    voci, titolo = [], ""
+    for riga in parte.splitlines():
+        m = re.match(r"^#+\s+(.*)", riga)
+        if m:
+            titolo = pulisci(m[1])
+            continue
+        m = re.match(r"^\s{0,3}\* \*\*(.+?)\*\*\s*(?:or\s*\*\*(.+?)\*\*\s*)?(?:or\s*\*\*(.+?)\*\*\s*)?:?\s*:?\s*(.*)$", riga)
+        if not m:
+            continue
+        azione = pulisci(m[4]).lstrip(": ").strip()
+        for k in (m[1], m[2], m[3]):
+            if not k:
+                continue
+            k = k.strip().rstrip(":").strip()
+            if re.search(r"button|click|dragging|while|key$|press twice|^Option$", k, re.I):
+                tasto = pulisci(k).replace("–", "-")
+            else:
+                tasto = tasto_apple(k)
+            voci.append({"tasto": tasto, "azione": azione, "contesto": titolo})
+    scrivi("macos.json", "macOS", fonte, "macos-scorciatoie.md", data, voci,
+           nota="lista ufficiale completa di Apple; le scorciatoie di sistema attive dell'utente vengono dal suo plist")
+
+
+def claude_code():
+    testo, fonte, data = pagina("claude-code-keybindings.md")
+    parte = testo[testo.index("\n## Available actions"):]
+    contesti = dict(re.findall(r"^### (.+?)\n+Actions available in the `(\w+)` context", parte, re.M))
+    voci = []
+    for titoli, intest, celle in tabelle(parte):
+        if len(celle) < 3 or intest[:2] != ["Action", "Default"]:
+            continue
+        azione = pulisci(celle[0])
+        descr = pulisci(celle[2])
+        sezione = titoli.get(3, "")
+        for t in alternative(celle[1]):
+            t = re.sub(r"\s*\((?:.*?)\)|\*$", "", t).strip()
+            if not t or t.lower() == "(unbound)":
+                continue
+            voci.append({"tasto": T.norma(t), "azione": f"{descr} ({azione})",
+                         "contesto": contesti.get(sezione, sezione)})
+    scrivi("claude-code.json", "Claude Code", fonte, "claude-code-keybindings.md", data, voci, livello="terminale",
+           origine="predefinito", nota="meta è Option sul Mac")
+
+
+def hunk():
+    testo, fonte, data = pagina("hunk-keybindings.md")
+    voci = []
+    for titoli, intest, celle in tabelle(testo):
+        if len(celle) < 3 or not intest[0].startswith("Command id"):
+            continue
+        ident, azione = pulisci(celle[0]), pulisci(celle[1])
+        for t in alternative(celle[2]):
+            if t.startswith("_(") or t == "(none)":
+                continue
+            voci.append({"tasto": T.norma(t), "azione": f"{azione} ({ident})",
+                         "contesto": titoli.get(2) or titoli.get(3) or "Hunk"})
+    scrivi("hunk.json", "Hunk", fonte, "hunk-keybindings.md", data, voci, livello="terminale", origine="predefinito",
+           nota="L'utente non ha [keybindings] in ~/.config/hunk: valgono i predefiniti")
+
+
+def codex_desktop():
+    testo, fonte, data = pagina("codex-app-commands.md")
+    parte = testo[testo.index("\n### macOS"):testo.index("\n### Windows")]
+    voci = []
+    for _, intest, celle in tabelle(parte):
+        if len(celle) < 2:
+            continue
+        azione = pulisci(celle[0])
+        for t in alternative(celle[1]):
+            if re.search(r"Mouse|Numpad|not assigned", t):
+                continue
+            voci.append({"tasto": T.norma(t), "azione": azione, "contesto": intest[0]})
+    scrivi("codex-desktop.json", "Codex desktop", fonte, "codex-app-commands.md", data, voci,
+           nota="lista ufficiale, sezione macOS")
+
+
+def codex_cli():
+    testo, fonte, data = pagina("codex-cli-slash-commands.md")
+    voci = []
+    for _, intest, celle in tabelle(testo):
+        if len(celle) < 2 or not intest[0].startswith("Command"):
+            continue
+        cmd = pulisci(celle[0]).split()[0].rstrip(",")
+        voci.append({"tasto": cmd, "azione": pulisci(celle[1]), "contesto": "comando slash"})
+    voci += [
+        {"tasto": "ctrl+o", "azione": "Copy the latest completed response (/copy)", "contesto": "chat"},
+        {"tasto": "ctrl+l", "azione": "Clear the terminal view and keep the current chat", "contesto": "chat"},
+        {"tasto": "tab", "azione": "Queue a typed slash command for the next turn while a chat runs",
+         "contesto": "comando slash"},
+    ]
+    scrivi("codex.json", "Codex", fonte, "codex-cli-slash-commands.md", data, voci, livello="terminale",
+           origine="predefinito",
+           nota="lacuna: la pagina non elenca i tasti predefiniti del TUI (si cambiano con /keymap in tui.keymap)")
+
+
+def superfile():
+    testo, fonte, data = pagina("superfile-hotkey-list.md")
+    voci = []
+    for titoli, intest, celle in tabelle(testo):
+        if len(celle) < 3 or intest[0] != "Function":
+            continue
+        variabile = pulisci(celle[2])
+        if not variabile:
+            continue
+        voci.append({"tasto": ", ".join(alternative(celle[1])), "azione": pulisci(celle[0]),
+                     "variabile": variabile, "contesto": titoli.get(2, "")})
+    scrivi("superfile.json", "Superfile", fonte, "superfile-hotkey-list.md", data, voci, livello="terminale",
+           origine="predefinito", solo_nomi=True,
+           nota="serve solo a dare il nome alle azioni: i tasti veri dell'utente vengono da hotkeys.toml")
+
+
+def obsidian():
+    testo, fonte, data = pagina("obsidian-editing-shortcuts.md")
+    parte = testo[testo.index("\n## macOS shortcuts"):]
+    voci = []
+    for titoli, intest, celle in tabelle(parte):
+        if len(celle) < 2 or intest[:2] != ["Action", "Shortcut"]:
+            continue
+        azione = pulisci(celle[0])
+        for t in alternative(celle[1]):
+            t = t.replace("Left/→", "left").replace("Shift+Left/→", "shift+left")
+            voci.append({"tasto": T.norma(t), "azione": azione, "contesto": titoli.get(3, "")})
+    scrivi("obsidian.json", "Obsidian", fonte, "obsidian-editing-shortcuts.md", data, voci, origine="predefinito",
+           nota="tasti di modifica del testo; lacuna: i tasti predefiniti dei comandi (pagina Hotkeys) non si "
+                "sono salvati (HTTP 503)")
+
+
+def espandi_lavish(cella):
+    """`Ctrl-h/j/k/l` -> ctrl+h / ctrl+j / ctrl+k / ctrl+l; `j` / `k` -> j / k."""
+    uscita = []
+    for pezzo in re.findall(r"`([^`]+)`", cella):
+        m = re.fullmatch(r"((?:\w+-)+)(\w(?:/\w)+)", pezzo)
+        if m:
+            uscita += [T.norma(m[1] + x) for x in m[2].split("/")]
+        else:
+            uscita.append(T.norma(pezzo) if "-" in pezzo or len(pezzo) > 2 else pezzo)
+    return uscita
+
+
+def lavish():
+    testo = open(os.path.join(KB, "lavish-20261110.md"), encoding="utf-8").read()
+    voci = []
+    for _, intest, celle in tabelle(testo):
+        if len(celle) < 2 or intest[0] != "Tasti":
+            continue
+        voci.append({"tasto": " / ".join(espandi_lavish(celle[0])), "azione": pulisci(celle[1])})
+    voci += [{"tasto": "gt / gT", "azione": "Scheda successiva / precedente", "nota": "estensione successiva, non nel primo passo"},
+             {"tasto": "]s / [s", "azione": "Sezione successiva / precedente", "nota": "estensione successiva, non nel primo passo"},
+             {"tasto": "]q / [q", "azione": "Domanda senza risposta successiva / precedente",
+              "nota": "estensione successiva, non nel primo passo"}]
+    scrivi("lavish.json", "Lavish", "~/KB/keybindings/lavish-20261110.md", "lavish-20261110.md",
+           "2026-11-10", voci, origine="proposta",
+           nota="mappa approvata il 10 novembre 2026, non implementata: il pannello la mostra come attiva "
+                "(decisione dell'utente); ctrl+alt resta di Herdr")
+
+
+def claude_desktop():
+    testo, fonte, data = pagina("claude-desktop-quick-entry.md")
+    voci = [
+        {"tasto": "2× alt", "azione": "Quick entry (predefinito); l'utente lo ha spostato su alt+space", "livello": "globale"},
+        {"tasto": "capslock", "azione": "Dettatura vocale di quick entry (spenta di predefinito)", "livello": "globale"},
+        {"tasto": "enter", "azione": "Quick entry: manda il messaggio", "contesto": "quick entry"},
+    ]
+    # App shortcuts the user mapped on the Kyria and in Hammerspoon: from his notes, not an official list.
+    note = "README della Kyria e ~/.hammerspoon/init.lua"
+    for tasto, azione in (("cmd+j", "Pannello terminale"), ("shift+cmd+b", "Pannello browser"),
+                          ("shift+cmd+f", "Pannello file"), ("cmd+b", "Chiude il pannello"),
+                          ("cmd+n", "Nuova sessione"), ("alt+left", "Sessione indietro"), ("alt+right", "Sessione avanti"),
+                          ("ctrl+[", "Pannello precedente"), ("ctrl+]", "Pannello successivo")):
+        voci.append({"tasto": tasto, "azione": azione, "origine": "note dell'utente", "fonte": note,
+                     "contesto": "scheda Code dell'app"})
+    scrivi("claude-desktop.json", "Claude Desktop", fonte, "claude-desktop-quick-entry.md", data, voci,
+           nota="nessuna lista ufficiale completa dei tasti dell'app: quick entry dalla pagina ufficiale, "
+                "il resto dalle note dell'utente")
+
+
+if __name__ == "__main__":
+    for f in (chrome, youtube, macos, claude_code, hunk, codex_desktop, codex_cli, superfile, obsidian, lavish,
+              claude_desktop):
+        f()

@@ -2,7 +2,7 @@
 // the side panels' terminals.
 //
 // The bar is a copy of Herdr's `tabs` mod (defaults/mods/tabs, not changed),
-// with six panel buttons in place of Files and Changes. Like `tabs`, it remembers
+// with seven panel buttons in place of Files and Changes. Like `tabs`, it remembers
 // the shown panel per space, including the native Browser.
 //
 // Browser is a regular web block with no core terminal. The other children of

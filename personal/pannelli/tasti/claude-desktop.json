@@ -1,0 +1,89 @@
+{
+ "programma": "Claude Desktop",
+ "livello": "app",
+ "origine": "ufficiale",
+ "fonte": "https://support.claude.com/en/articles/12626668-use-quick-entry-with-claude-desktop-on-mac",
+ "copia": "~/KB/keybindings/claude-desktop-quick-entry.md",
+ "data": "2026-11-23",
+ "nota": "nessuna lista ufficiale completa dei tasti dell'app: quick entry dalla pagina ufficiale, il resto dalle note dell'utente",
+ "voci": [
+  {
+   "tasto": "2× alt",
+   "azione": "Quick entry (predefinito); l'utente lo ha spostato su alt+space",
+   "livello": "globale"
+  },
+  {
+   "tasto": "capslock",
+   "azione": "Dettatura vocale di quick entry (spenta di predefinito)",
+   "livello": "globale"
+  },
+  {
+   "tasto": "enter",
+   "azione": "Quick entry: manda il messaggio",
+   "contesto": "quick entry"
+  },
+  {
+   "tasto": "cmd+j",
+   "azione": "Pannello terminale",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  },
+  {
+   "tasto": "shift+cmd+b",
+   "azione": "Pannello browser",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  },
+  {
+   "tasto": "shift+cmd+f",
+   "azione": "Pannello file",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  },
+  {
+   "tasto": "cmd+b",
+   "azione": "Chiude il pannello",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  },
+  {
+   "tasto": "cmd+n",
+   "azione": "Nuova sessione",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  },
+  {
+   "tasto": "alt+left",
+   "azione": "Sessione indietro",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  },
+  {
+   "tasto": "alt+right",
+   "azione": "Sessione avanti",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  },
+  {
+   "tasto": "ctrl+[",
+   "azione": "Pannello precedente",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  },
+  {
+   "tasto": "ctrl+]",
+   "azione": "Pannello successivo",
+   "origine": "note dell'utente",
+   "fonte": "README della Kyria e ~/.hammerspoon/init.lua",
+   "contesto": "scheda Code dell'app"
+  }
+ ]
+}

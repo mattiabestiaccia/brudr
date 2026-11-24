@@ -1,0 +1,331 @@
+{
+ "programma": "Codex",
+ "livello": "terminale",
+ "origine": "predefinito",
+ "fonte": "https://learn.chatgpt.com/docs/cli/slash-commands/",
+ "copia": "~/KB/keybindings/codex-cli-slash-commands.md",
+ "data": "2026-11-23",
+ "nota": "lacuna: la pagina non elenca i tasti predefiniti del TUI (si cambiano con /keymap in tui.keymap)",
+ "voci": [
+  {
+   "tasto": "/permissions",
+   "azione": "Set what Codex can do without asking first.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/ide",
+   "azione": "Include open files, current selection, and other IDE context.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/config",
+   "azione": "Search and change terminal preferences.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/keymap",
+   "azione": "Remap TUI keyboard shortcuts.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/vim",
+   "azione": "Toggle Vim mode for the composer.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/setup-default-sandbox",
+   "azione": "Set up the elevated agent sandbox (Windows only).",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/agents",
+   "azione": "Open the agent command center.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/subagents",
+   "azione": "Switch the active subagent thread.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/apps",
+   "azione": "Browse apps (connectors) and insert them into your prompt.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/plugins",
+   "azione": "Browse installed and discoverable plugins.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/hooks",
+   "azione": "View and manage lifecycle hooks.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/clear",
+   "azione": "Clear the terminal and start a fresh chat.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/rename",
+   "azione": "Rename the current chat.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/archive",
+   "azione": "Archive the current session.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/delete",
+   "azione": "Permanently delete the current session.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/compact",
+   "azione": "Summarize the visible chat to free tokens.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/copy",
+   "azione": "Copy a response, code block, or quote.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/diff",
+   "azione": "Show the Git diff, including files Git isn't tracking yet.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/exit",
+   "azione": "Exit the CLI (same as /quit).",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/experimental",
+   "azione": "Toggle experimental features.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/approve",
+   "azione": "Approve one retry of a recent auto review denial.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/memories",
+   "azione": "Configure memory use and generation.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/skills",
+   "azione": "Browse and use skills.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/import",
+   "azione": "Import Claude Code or Cursor setup, projects, and chats.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/feedback",
+   "azione": "Send feedback or save a diagnostic ZIP.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/init",
+   "azione": "Generate an AGENTS.md scaffold in the current directory.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/logout",
+   "azione": "Sign out of Codex.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/mcp",
+   "azione": "List configured Model Context Protocol (MCP) tools.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/mention",
+   "azione": "Attach a file to the chat.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/model",
+   "azione": "Choose the active model (and reasoning effort, when available).",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/presets",
+   "azione": "Save and run prompts or slash commands.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/fast",
+   "azione": "Toggle a Fast service tier when the model catalog exposes one.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/daybreak",
+   "azione": "Toggle Daybreak when your account and model are eligible.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/voice",
+   "azione": "Start or stop a voice conversation when available.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/plan",
+   "azione": "Switch to plan mode and optionally send a prompt.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/goal",
+   "azione": "Set, edit, pause, resume, view, or clear a task goal.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/ps",
+   "azione": "Show background terminals and their recent output.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/stop",
+   "azione": "Stop all background terminals.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/fork",
+   "azione": "Fork the current chat into a new chat.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/app",
+   "azione": "Continue the current session in the ChatGPT desktop app.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/side",
+   "azione": "Open a side chat.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/raw",
+   "azione": "Toggle raw scrollback mode.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/resume",
+   "azione": "Resume a saved chat from your session list.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/new",
+   "azione": "Start a new chat inside the same CLI session.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/quit",
+   "azione": "Exit the CLI.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/review",
+   "azione": "Ask Codex to review your working tree.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/status",
+   "azione": "Display session configuration and token usage.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/usage",
+   "azione": "View account token usage or use a rate-limit reset.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/debug-config",
+   "azione": "Print config layer and requirements diagnostics.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/statusline",
+   "azione": "Configure TUI status-line fields interactively.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/title",
+   "azione": "Configure terminal window or tab title fields interactively.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/theme",
+   "azione": "Choose a syntax-highlighting theme.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/pets",
+   "azione": "Choose or hide a terminal pet.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/tui",
+   "azione": "Choose the terminal mode for the next launch.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/export",
+   "azione": "Export the conversation as Markdown.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/recap",
+   "azione": "Generate a summary of the current conversation.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/cd",
+   "azione": "Change the session's working directory.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/pwd",
+   "azione": "Show the working directory.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/worktree",
+   "azione": "Start or continue a chat in a managed Git worktree.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/daemon",
+   "azione": "Open background server controls.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "/warnings",
+   "azione": "View retained warnings and diagnostics.",
+   "contesto": "comando slash"
+  },
+  {
+   "tasto": "ctrl+o",
+   "azione": "Copy the latest completed response (/copy)",
+   "contesto": "chat"
+  },
+  {
+   "tasto": "ctrl+l",
+   "azione": "Clear the terminal view and keep the current chat",
+   "contesto": "chat"
+  },
+  {
+   "tasto": "tab",
+   "azione": "Queue a typed slash command for the next turn while a chat runs",
+   "contesto": "comando slash"
+  }
+ ]
+}
