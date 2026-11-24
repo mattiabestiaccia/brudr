@@ -230,7 +230,10 @@ A layout is a tree of nodes. Four types:
   `{ "web": { "url": "https://example.com" } }`. This is a person's
   browser, not a mod API or an agent-controlled view. It can cover GPUI
   overlays inside its rectangle. Do not put it in tab panes, floating
-  blocks or window overlays.
+  blocks or window overlays. `url` is where it starts and where its new
+  tabs open; tabs last until the block goes away. Its ★ saves to the
+  person's bookmarks file `data/brudr-browser/preferiti.txt` (one
+  `<url> <title>` line each, `#` comments); edit it only when asked.
 - `row` / `column`: children side by side / stacked.
 - `stack`: shows one child (`"active": "<child id>"`), with an optional
   `"header"` (a mod that draws tabs, or `"tabs"` for a plain built-in strip).

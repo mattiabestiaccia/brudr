@@ -32,7 +32,7 @@ TIPI = ["spf", "nvim", "hunk", "quota", "tasti", "privato"]
 BOTTONI = ["files", "neovim", "changes", "quota", "tasti", "privato", "browser"]
 # The blocks of the stack: Superfile's Nushell view (no button) just before Superfile.
 FIGLI = ["spf-vista", *BOTTONI]
-WEB = {"web": {"url": "https://example.com/"}}
+WEB = {"web": {"url": "https://www.google.com/"}}
 
 
 class Cartella(unittest.TestCase):
@@ -388,7 +388,7 @@ fn main() {
     }
     let browser = n.find("browser").unwrap();
     assert!(browser.terminal().is_none());
-    assert!(matches!(browser.content(), Some(layout::Content::Web { web }) if web.url == "https://example.com/"));
+    assert!(matches!(browser.content(), Some(layout::Content::Web { web }) if web.url == "https://www.google.com/"));
     assert!(shown.select("panel-body", "browser"));
     let v = serde_json::to_value(n.find("privato").unwrap()).unwrap();
     assert!(v.get("background").is_none(), "{v}");

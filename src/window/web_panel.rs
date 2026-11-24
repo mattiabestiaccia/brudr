@@ -3,6 +3,8 @@ use super::AppWindow;
 use crate::layout::Node;
 use gpui::{AnyElement, Context, IntoElement, ParentElement, Styled, div};
 
+mod browser;
+
 #[derive(Default)]
 pub(super) struct Panels {
     #[cfg(target_os = "macos")]
@@ -85,6 +87,7 @@ mod mac {
         fn brudr_web_create(
             parent: *mut c_void,
             profile: *const c_char,
+            bookmarks: *const c_char,
             callback: Callback,
             context: *const c_void,
         ) -> *mut c_void;
@@ -196,7 +199,10 @@ mod mac {
                 return None;
             };
             let home = crate::mods::app_dir();
-            let profile = CString::new(profile_id(&home.canonicalize().unwrap_or(home))).ok()?;
+            let home = home.canonicalize().unwrap_or(home);
+            let profile = CString::new(profile_id(&home)).ok()?;
+            let bookmarks = super::browser::bookmarks_path(&home);
+            let bookmarks = CString::new(bookmarks.as_os_str().as_encoded_bytes()).ok()?;
             let router = Rc::new(Router {
                 window: window.to_async(cx),
                 app,
@@ -206,6 +212,7 @@ mod mac {
                 brudr_web_create(
                     handle.ns_view.as_ptr(),
                     profile.as_ptr(),
+                    bookmarks.as_ptr(),
                     event,
                     Rc::as_ptr(&router).cast(),
                 )
@@ -333,6 +340,10 @@ mod mac {
         }
     }
 
+    /// The tab strip (26 points) and the address bar (32) above the page; keep in
+    /// step with `web_panel.m`.
+    const HEADER: f64 = 58.0;
+
     fn placed_rect(bounds: Bounds<Pixels>, clip: Bounds<Pixels>) -> Option<[f64; 4]> {
         let clipped = bounds.intersect(&clip);
         let p = |v: Pixels| f64::from(f32::from(v));
@@ -342,8 +353,8 @@ mod mac {
             p(clipped.size.width),
             p(clipped.size.height),
         ];
-        // A tiny/fully clipped slot cannot contain the 32-point browser toolbar.
-        (result.iter().all(|n| n.is_finite()) && result[2] >= 1.0 && result[3] > 32.0)
+        // A tiny/fully clipped slot cannot contain the browser's bars.
+        (result.iter().all(|n| n.is_finite()) && result[2] >= 1.0 && result[3] > HEADER)
             .then_some(result)
     }
 
@@ -440,6 +451,11 @@ mod mac {
             );
             assert_eq!(placed_rect(slot, rect(320.0, 30.0, 100.0, 150.0)), None);
             assert_eq!(placed_rect(slot, rect(0.0, 0.0, 100.0, 45.0)), None);
+            assert_eq!(placed_rect(slot, rect(0.0, 0.0, 100.0, 78.0)), None);
+            assert_eq!(
+                placed_rect(slot, rect(0.0, 0.0, 100.0, 79.0)),
+                Some([10.5, 20.0, 89.5, 59.0])
+            );
         }
 
         #[test]

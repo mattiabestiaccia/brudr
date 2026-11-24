@@ -30,7 +30,7 @@ FIGLI = [
 
 
 def browser():
-    return {"id": "browser", "type": "block", "content": {"web": {"url": "https://example.com/"}}}
+    return {"id": "browser", "type": "block", "content": {"web": {"url": "https://www.google.com/"}}}
 
 
 def stack():

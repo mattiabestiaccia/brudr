@@ -12,67 +12,244 @@ static BOOL webURL(NSURL *url) {
     return url.host.length && ([scheme isEqualToString:@"https"] || [scheme isEqualToString:@"http"]);
 }
 
+// Plain-data helpers in `web_panel/browser.rs`.
+char *brudr_bookmarks_list(const char *path);
+int brudr_bookmarks_toggle(const char *path, const char *url, const char *title);
+bool brudr_bookmarks_ensure(const char *path);
+void brudr_string_free(char *text);
+size_t brudr_tab_after_close(size_t count, size_t current, size_t closed);
+size_t brudr_tab_limit(void);
+
+static void *const TabObservation = (void *)&TabObservation;
+
+// Heights of the tab strip and the address bar; keep in step with HEADER in web_panel.rs.
+static const CGFloat TabStripHeight = 26, ToolbarHeight = 32;
+
 @interface BrudrWebPanel : NSView <WKNavigationDelegate>
-@property (strong) WKWebView *web;
+@property (strong) WKWebsiteDataStore *store;
+@property (copy) NSString *home;
+@property (copy) NSString *bookmarksPath;
+@property (strong) NSMutableArray<WKWebView *> *tabs;
+@property NSUInteger current;
+@property (strong) NSView *pages;
+@property (strong) NSSegmentedControl *strip;
+@property (strong) NSButton *addTab;
+@property (strong) NSButton *closeTab;
 @property (strong) NSTextField *address;
 @property (strong) NSButton *back;
 @property (strong) NSButton *forward;
--(instancetype)initWithStore:(WKWebsiteDataStore *)store URL:(NSString *)url;
+@property (strong) NSButton *star;
+-(instancetype)initWithStore:(WKWebsiteDataStore *)store URL:(NSString *)url bookmarks:(NSString *)bookmarks;
 @end
 
+static NSButton *barButton(NSString *title, NSString *tip, id target, SEL action) {
+    NSButton *button = [NSButton buttonWithTitle:title target:target action:action];
+    button.toolTip = tip;
+    return button;
+}
+
+static NSVisualEffectView *barBackground(NSView *content) {
+    NSVisualEffectView *bar = [NSVisualEffectView new];
+    bar.material = NSVisualEffectMaterialWindowBackground;
+    bar.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    bar.translatesAutoresizingMaskIntoConstraints = NO;
+    content.translatesAutoresizingMaskIntoConstraints = NO;
+    [bar addSubview:content];
+    [NSLayoutConstraint activateConstraints:@[
+        [content.leadingAnchor constraintEqualToAnchor:bar.leadingAnchor constant:5],
+        [content.trailingAnchor constraintEqualToAnchor:bar.trailingAnchor constant:-5],
+        [content.centerYAnchor constraintEqualToAnchor:bar.centerYAnchor],
+    ]];
+    return bar;
+}
+
 @implementation BrudrWebPanel
--(instancetype)initWithStore:(WKWebsiteDataStore *)store URL:(NSString *)url {
+-(instancetype)initWithStore:(WKWebsiteDataStore *)store URL:(NSString *)url bookmarks:(NSString *)bookmarks {
     if (!(self = [super initWithFrame:NSZeroRect])) return nil;
+    self.store = store;
+    self.home = url;
+    self.bookmarksPath = bookmarks;
+    self.tabs = [NSMutableArray array];
 
-    WKWebViewConfiguration *config = [WKWebViewConfiguration new];
-    config.websiteDataStore = store;
-    self.web = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:config];
-    self.web.navigationDelegate = self;
-    self.web.translatesAutoresizingMaskIntoConstraints = NO;
-    [self addSubview:self.web];
+    // Tab strip: one segment per tab (titles cut to fit), then new and close-this-tab.
+    self.strip = [NSSegmentedControl segmentedControlWithLabels:@[@""]
+                                                   trackingMode:NSSegmentSwitchTrackingSelectOne
+                                                         target:self action:@selector(pickTab:)];
+    self.strip.segmentDistribution = NSSegmentDistributionFillEqually;
+    self.strip.controlSize = NSControlSizeSmall;
+    self.strip.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    [self.strip setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                          forOrientation:NSLayoutConstraintOrientationHorizontal];
+    self.addTab = barButton(@"+", @"New tab", self, @selector(newTab:));
+    self.closeTab = barButton(@"×", @"Close this tab", self, @selector(closeCurrentTab:));
+    for (NSButton *button in @[self.addTab, self.closeTab]) button.controlSize = NSControlSizeSmall;
+    NSStackView *tabRow = [NSStackView stackViewWithViews:@[self.strip, self.addTab, self.closeTab]];
+    tabRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    tabRow.spacing = 3;
+    tabRow.distribution = NSStackViewDistributionFill;
+    [self.strip setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSVisualEffectView *tabBar = barBackground(tabRow);
 
+    // Address bar: back, forward, reload, address, save and bookmarks menu.
     self.address = [NSTextField textFieldWithString:url];
     self.address.placeholderString = @"https://example.com";
     self.address.target = self;
     self.address.action = @selector(go:);
     [self.address setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                             forOrientation:NSLayoutConstraintOrientationHorizontal];
-    self.back = [NSButton buttonWithTitle:@"←" target:self action:@selector(goBack:)];
-    self.back.toolTip = @"Back";
+    self.back = barButton(@"←", @"Back", self, @selector(goBack:));
     self.back.enabled = NO;
-    self.forward = [NSButton buttonWithTitle:@"→" target:self action:@selector(goForward:)];
-    self.forward.toolTip = @"Forward";
+    self.forward = barButton(@"→", @"Forward", self, @selector(goForward:));
     self.forward.enabled = NO;
-    NSButton *reload = [NSButton buttonWithTitle:@"↻" target:self action:@selector(reload:)];
-    reload.toolTip = @"Reload";
-    NSStackView *bar = [NSStackView stackViewWithViews:@[self.back, self.forward, reload, self.address]];
+    NSButton *reload = barButton(@"↻", @"Reload", self, @selector(reload:));
+    self.star = barButton(@"☆", @"Bookmark this page", self, @selector(toggleBookmark:));
+    NSButton *menu = barButton(@"▾", @"Bookmarks", self, @selector(showBookmarks:));
+    NSStackView *bar = [NSStackView stackViewWithViews:@[self.back, self.forward, reload, self.address, self.star, menu]];
     bar.orientation = NSUserInterfaceLayoutOrientationHorizontal;
     bar.spacing = 3;
-    bar.translatesAutoresizingMaskIntoConstraints = NO;
-    NSVisualEffectView *toolbar = [NSVisualEffectView new];
-    toolbar.material = NSVisualEffectMaterialWindowBackground;
-    toolbar.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-    toolbar.translatesAutoresizingMaskIntoConstraints = NO;
-    [toolbar addSubview:bar];
+    NSVisualEffectView *toolbar = barBackground(bar);
+
+    // Every tab's web view lives here; only the shown one is visible.
+    self.pages = [NSView new];
+    self.pages.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:self.pages];
+    [self addSubview:tabBar];
     [self addSubview:toolbar];
     [NSLayoutConstraint activateConstraints:@[
-        [toolbar.topAnchor constraintEqualToAnchor:self.topAnchor],
+        [tabBar.topAnchor constraintEqualToAnchor:self.topAnchor],
+        [tabBar.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+        [tabBar.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+        [tabBar.heightAnchor constraintEqualToConstant:TabStripHeight],
+        [toolbar.topAnchor constraintEqualToAnchor:tabBar.bottomAnchor],
         [toolbar.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
         [toolbar.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
-        [toolbar.heightAnchor constraintEqualToConstant:32],
-        [bar.leadingAnchor constraintEqualToAnchor:toolbar.leadingAnchor constant:5],
-        [bar.trailingAnchor constraintEqualToAnchor:toolbar.trailingAnchor constant:-5],
-        [bar.centerYAnchor constraintEqualToAnchor:toolbar.centerYAnchor],
-        [self.web.topAnchor constraintEqualToAnchor:toolbar.bottomAnchor],
-        [self.web.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
-        [self.web.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
-        [self.web.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+        [toolbar.heightAnchor constraintEqualToConstant:ToolbarHeight],
+        [self.pages.topAnchor constraintEqualToAnchor:toolbar.bottomAnchor],
+        [self.pages.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+        [self.pages.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+        [self.pages.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
     ]];
-    [self go:nil];
+    [self openTab:nil];
     return self;
 }
 
+-(void)dealloc {
+    for (WKWebView *web in self.tabs) [self forget:web];
+}
+
 -(BOOL)wantsDefaultClipping { return YES; }
+
+-(WKWebView *)web { return self.tabs[self.current]; }
+
+#pragma mark Tabs
+
+// Every tab shares the panel's data store, so one sign-in serves all of them.
+-(WKWebView *)openTab:(NSURLRequest *)request {
+    WKWebViewConfiguration *config = [WKWebViewConfiguration new];
+    config.websiteDataStore = self.store;
+    WKWebView *web = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:config];
+    web.navigationDelegate = self;
+    web.translatesAutoresizingMaskIntoConstraints = NO;
+    web.hidden = YES;
+    [self.pages addSubview:web];
+    [NSLayoutConstraint activateConstraints:@[
+        [web.topAnchor constraintEqualToAnchor:self.pages.topAnchor],
+        [web.bottomAnchor constraintEqualToAnchor:self.pages.bottomAnchor],
+        [web.leadingAnchor constraintEqualToAnchor:self.pages.leadingAnchor],
+        [web.trailingAnchor constraintEqualToAnchor:self.pages.trailingAnchor],
+    ]];
+    for (NSString *key in @[@"title", @"URL"]) {
+        [web addObserver:self forKeyPath:key options:0 context:TabObservation];
+    }
+    [self.tabs addObject:web];
+    [self showTab:self.tabs.count - 1];
+    if (request) {
+        [web loadRequest:request];
+    } else {
+        self.address.stringValue = self.home;
+        [self go:nil];
+    }
+    return web;
+}
+
+-(void)forget:(WKWebView *)web {
+    for (NSString *key in @[@"title", @"URL"]) [web removeObserver:self forKeyPath:key context:TabObservation];
+    web.navigationDelegate = nil;
+}
+
+-(BOOL)hasFocus:(NSView *)view {
+    NSResponder *responder = self.window.firstResponder;
+    return [responder isKindOfClass:NSView.class] && [(NSView *)responder isDescendantOf:view];
+}
+
+// A hidden tab keeps its page but gets no clicks or keys; keyboard focus moves along.
+-(void)showTab:(NSUInteger)index {
+    WKWebView *old = self.current < self.tabs.count ? self.tabs[self.current] : nil;
+    WKWebView *web = self.tabs[index];
+    BOOL focused = old && old != web && [self hasFocus:old];
+    self.current = index;
+    for (WKWebView *tab in self.tabs) tab.hidden = tab != web;
+    if (focused) [self.window makeFirstResponder:web];
+    [self updateLocation:web];
+    [self updateTabs];
+}
+
+-(void)newTab:(id)sender {
+    if (self.tabs.count >= brudr_tab_limit()) {
+        NSBeep();
+        return;
+    }
+    [self openTab:nil];
+    [self.window makeFirstResponder:self.address];
+}
+
+-(void)pickTab:(NSSegmentedControl *)sender {
+    if (sender.selectedSegment >= 0 && (NSUInteger)sender.selectedSegment < self.tabs.count) {
+        [self showTab:sender.selectedSegment];
+    }
+}
+
+-(void)closeCurrentTab:(id)sender {
+    NSUInteger count = self.tabs.count, closed = self.current;
+    if (count < 2) return;
+    WKWebView *web = self.tabs[closed];
+    BOOL focused = [self hasFocus:web];
+    [self forget:web];
+    [web stopLoading];
+    [web removeFromSuperview];
+    [self.tabs removeObjectAtIndex:closed];
+    self.current = brudr_tab_after_close(count, closed, closed);
+    [self showTab:self.current];
+    if (focused) [self.window makeFirstResponder:self.web];
+}
+
+-(NSString *)labelFor:(WKWebView *)web {
+    if (web.title.length) return web.title;
+    return web.URL.host.length ? web.URL.host : @"New tab";
+}
+
+-(void)updateTabs {
+    NSSegmentedControl *strip = self.strip;
+    strip.segmentCount = self.tabs.count;
+    for (NSUInteger i = 0; i < self.tabs.count; i++) {
+        [strip setLabel:[self labelFor:self.tabs[i]] forSegment:i];
+        [strip setToolTip:self.tabs[i].URL.absoluteString forSegment:i];
+    }
+    strip.selectedSegment = self.current;
+    self.closeTab.enabled = self.tabs.count > 1;
+    self.addTab.enabled = self.tabs.count < brudr_tab_limit();
+}
+
+-(void)observeValueForKeyPath:(NSString *)key ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if (context != TabObservation) {
+        [super observeValueForKeyPath:key ofObject:object change:change context:context];
+        return;
+    }
+    if ([key isEqualToString:@"URL"] && object == self.web) [self updateLocation:object];
+    [self updateTabs];
+}
+
+#pragma mark Navigation
 
 -(void)go:(id)sender {
     NSString *text = [self.address.stringValue stringByTrimmingCharactersInSet:
@@ -99,10 +276,11 @@ static BOOL webURL(NSURL *url) {
 
 -(void)webView:(WKWebView *)view decidePolicyForNavigationAction:(WKNavigationAction *)action
   decisionHandler:(void (^)(WKNavigationActionPolicy))decide {
-    if (!action.targetFrame) { // Keep new-window links in this panel; do not open another app.
+    if (!action.targetFrame) { // A link for a new window opens a tab here; never another app.
         decide(WKNavigationActionPolicyCancel);
         if (action.navigationType == WKNavigationTypeLinkActivated && webURL(action.request.URL)) {
-            [view loadRequest:action.request];
+            if (self.tabs.count < brudr_tab_limit()) [self openTab:action.request];
+            else [view loadRequest:action.request];
         }
     } else {
         NSString *scheme = action.request.URL.scheme.lowercaseString;
@@ -112,28 +290,98 @@ static BOOL webURL(NSURL *url) {
     }
 }
 
+// The bars follow the shown tab only.
 -(void)updateLocation:(WKWebView *)view {
+    if (view != self.web) return;
     if (view.URL && !self.address.currentEditor) {
         self.address.stringValue = view.URL.absoluteString;
     }
     self.back.enabled = view.canGoBack;
     self.forward.enabled = view.canGoForward;
+    [self updateStar];
 }
 
 -(void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)nav { [self updateLocation:view]; }
 -(void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)nav { [self updateLocation:view]; }
 -(void)webView:(WKWebView *)view didFailNavigation:(WKNavigation *)nav withError:(NSError *)error {
-    if (error.code != NSURLErrorCancelled) self.address.toolTip = error.localizedDescription;
+    if (view == self.web && error.code != NSURLErrorCancelled) self.address.toolTip = error.localizedDescription;
     [self updateLocation:view];
 }
 -(void)webView:(WKWebView *)view didFailProvisionalNavigation:(WKNavigation *)nav withError:(NSError *)error {
     [self webView:view didFailNavigation:nav withError:error];
+}
+
+#pragma mark Bookmarks
+
+// Read the file on every use, so a hand edit shows at the next menu or page.
+-(NSArray<NSArray<NSString *> *> *)bookmarks {
+    char *raw = brudr_bookmarks_list(self.bookmarksPath.fileSystemRepresentation);
+    if (!raw) return @[];
+    NSString *text = @(raw);
+    brudr_string_free(raw);
+    NSMutableArray *list = [NSMutableArray array];
+    for (NSString *line in [text componentsSeparatedByString:@"\n"]) {
+        NSRange tab = [line rangeOfString:@"\t"];
+        if (tab.location == NSNotFound) continue;
+        [list addObject:@[[line substringToIndex:tab.location], [line substringFromIndex:NSMaxRange(tab)]]];
+    }
+    return list;
+}
+
+-(void)updateStar {
+    NSString *url = self.web.URL.absoluteString;
+    BOOL saved = NO;
+    if (url) for (NSArray *item in self.bookmarks) saved |= [item[0] isEqualToString:url];
+    self.star.title = saved ? @"★" : @"☆";
+    self.star.toolTip = saved ? @"Remove this bookmark" : @"Bookmark this page";
+}
+
+-(void)toggleBookmark:(id)sender {
+    NSURL *url = self.web.URL;
+    if (!webURL(url) || brudr_bookmarks_toggle(self.bookmarksPath.fileSystemRepresentation,
+                                               url.absoluteString.UTF8String,
+                                               (self.web.title ?: @"").UTF8String) < 0) {
+        NSBeep();
+    }
+    [self updateStar];
+}
+
+-(void)showBookmarks:(NSButton *)sender {
+    NSMenu *menu = [NSMenu new];
+    menu.autoenablesItems = NO;
+    for (NSArray<NSString *> *item in self.bookmarks) {
+        NSMenuItem *entry = [menu addItemWithTitle:item[1] action:@selector(openBookmark:) keyEquivalent:@""];
+        entry.target = self;
+        entry.toolTip = item[0];
+        entry.representedObject = item[0];
+    }
+    if (!menu.numberOfItems) [menu addItemWithTitle:@"No bookmarks yet" action:nil keyEquivalent:@""].enabled = NO;
+    [menu addItem:NSMenuItem.separatorItem];
+    NSMenuItem *edit = [menu addItemWithTitle:@"Edit bookmarks file…" action:@selector(editBookmarks:) keyEquivalent:@""];
+    edit.target = self;
+    edit.toolTip = self.bookmarksPath;
+    NSPoint below = NSMakePoint(0, sender.isFlipped ? NSMaxY(sender.bounds) + 2 : -2);
+    [menu popUpMenuPositioningItem:nil atLocation:below inView:sender];
+}
+
+-(void)openBookmark:(NSMenuItem *)item {
+    self.address.stringValue = item.representedObject;
+    [self go:item];
+}
+
+-(void)editBookmarks:(id)sender {
+    if (!brudr_bookmarks_ensure(self.bookmarksPath.fileSystemRepresentation)) {
+        NSBeep();
+        return;
+    }
+    [NSWorkspace.sharedWorkspace openURL:[NSURL fileURLWithPath:self.bookmarksPath]];
 }
 @end
 
 @interface BrudrWebHost : NSObject
 @property (weak) NSView *parent;
 @property (strong) WKWebsiteDataStore *store;
+@property (copy) NSString *bookmarks;
 @property (strong) NSMutableDictionary<NSString *, BrudrWebPanel *> *panels;
 @property (strong) id monitor;
 @property const void *context;
@@ -179,13 +427,16 @@ static BOOL webURL(NSURL *url) {
 }
 @end
 
-void *brudr_web_create(void *parent, const char *profile, BrowserEvent callback, const void *context) {
+void *brudr_web_create(void *parent, const char *profile, const char *bookmarks, BrowserEvent callback,
+                       const void *context) {
     if (@available(macOS 14.0, *)) {
         NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:@(profile)];
         if (!uuid) return NULL;
         BrudrWebHost *host = [BrudrWebHost new];
         host.parent = (__bridge NSView *)parent;
         host.store = [WKWebsiteDataStore dataStoreForIdentifier:uuid];
+        host.bookmarks = [NSFileManager.defaultManager stringWithFileSystemRepresentation:bookmarks
+                                                                                  length:strlen(bookmarks)];
         host.panels = [NSMutableDictionary dictionary];
         host.callback = callback;
         host.context = context;
@@ -242,7 +493,7 @@ void brudr_web_show(void *ptr, const char *id, const char *url, double x, double
     NSString *key = @(id);
     BrudrWebPanel *panel = host.panels[key];
     if (!panel) {
-        panel = [[BrudrWebPanel alloc] initWithStore:host.store URL:@(url)];
+        panel = [[BrudrWebPanel alloc] initWithStore:host.store URL:@(url) bookmarks:host.bookmarks];
         panel.hidden = YES;
         host.panels[key] = panel;
         [parent addSubview:panel];
