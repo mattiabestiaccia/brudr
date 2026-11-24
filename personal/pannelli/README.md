@@ -27,6 +27,9 @@ Privato vuol dire: il terminale porta l'etichetta di core `brudr.private=1` dall
 | File | Cosa |
 | --- | --- |
 | `mods/pannelli/` | mod: barra in alto (copia di `tabs`, con sette pulsanti al posto di Files e Changes) e custode dei terminali; `blocchi.js` ha i pannelli e la riparazione del layout |
+| `mods/pannelli/schede.js` | la scheda nuova a tre pannelli (pioggia, programma, pioggia): scelte, comando e proporzioni |
+| `mods/nuova-scheda/` | il menu «+» di brudr: copia di `new-menu` con Terminal, CCB, PIB, GPB, CCF, PIF |
+| `test_schede.mjs` | prove della scheda a tre pannelli con un brudr finto: `node --test personal/pannelli/test_schede.mjs` |
 | `brudr-pannello` | il programma di ogni pannello; non finisce mai da solo |
 | `spf-apri` | apertura in Obsidian, Zed o nella vista Nushell per i tipi configurati; la vista colorata in brudr, anche fuori da brudr |
 | `brudr-tasti` | il programma del pannello Tasti: indice dei tasti (`genera`), ricerca con fzf e anteprima con bat |
@@ -39,6 +42,7 @@ Privato vuol dire: il terminale porta l'etichetta di core `brudr.private=1` dall
 
 ## Come funziona
 
+- **Scheda nuova a tre pannelli** (24 novembre 2026). Il menu «+» (mod `nuova-scheda`) e `cmd-t` / `ctrl-alt-c` aprono una scheda con tre pannelli affiancati: a sinistra e a destra fish con la pioggia di drift già partita (`fish -C "drift --scene rain --duration 0"`; un tasto ferma la pioggia e resta fish), al centro il terminale o il profilo scelto. I lati prendono il 12,5% ciascuno (`LATO` in `schede.js`), il centro il 75%. Le scelte del menu sono Terminal, CCB, PIB, GPB (`--here`), CCF e PIF (nella loro casa); OpenCode e Cursor non ci sono. Il menu manda `pannelli.scheda-<id>` e la mod `pannelli` apre la scheda: `tab.new`, due `pane.split` a destra, poi due `pane.resize` (il lato sinistro a 1/3 rende uguali i tre pesi, il centro a 0,75 lascia i lati uguali; il perché in testa a `schede.js`). L'elenco delle scelte sta solo in `schede.js`: la mod lo pubblica nello stato condiviso `pannelli.schede` e il menu lo legge. Fuori dal layout «brudr pannelli» la mod non gira: `cmd-t` non fa niente e il «+» di Herdr resta quello di `new-menu`.
 - **Layout.** `brudr-pannelli` è il layout trasparente con due cambi: lo stack `panel-body` ha un blocco web, sei blocchi `{"terminal": "brudr-<tipo>"}` e, prima di Superfile, il blocco `spf-vista` (`{"terminal": "brudr-spf-vista"}`, senza pulsante) della vista Nushell, per nome (il core accetta un nome al posto dell'indirizzo, quindi il layout non cambia quando cambia l'indirizzo), senza intestazione e senza fondo proprio (Private ha il grigio degli altri); il blocco `tabs` usa la mod `pannelli` al posto di `tabs`. Gli id `files` e `changes` restano. `herdr-transparent` resta com'è.
 - **Mod `pannelli`.** È la barra in alto: le schede come la mod `tabs` di Herdr (copiata, `defaults/` non cambia) e, al posto di Files e Changes, i pulsanti Superfile, Neovim, Hunk, Quota, Tasti, Private e Browser (un puntino segna i privati). Un clic mostra il pannello, un secondo clic lo nasconde. Come `tabs`, ricorda per ogni spazio il pannello aperto. Quando mostra un pannello a terminale senza il suo terminale, lo crea:
   `hc run --bg --json --no-parent --rm --name brudr-<tipo> --label brudr.panel=<tipo> [--label brudr.private=1] --cwd <cartella> -- ~/bin/brudr-pannello <tipo>`.

@@ -26,8 +26,9 @@
 // Programs never exit on their own: brudr-pannello restarts them in a loop.
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, ScrollHandle } from "gpui-base";
-import { spaces, panes, focused, terminals, layout, theme, run, hc, exec, home, appHome, readTextFile, writeTextFile, shared, notify, openOverlay, window, settings } from "herdr";
+import { spaces, panes, focused, terminals, layout, theme, run, hc, exec, home, appHome, readTextFile, writeTextFile, shared, notify, openOverlay, window, settings, nextCommand, setShared } from "herdr";
 import { PANNELLI, VISTE, ORDINE, STACK, nomeDi, pannelloDi, trova, ripara } from "./blocchi.js";
+import { SCHEDE, ELENCO, schedaDi, apriScheda } from "./schede.js";
 
 const PANEL = "brudr.panel", PRIVATE = "brudr.private";
 // Between two repairs nobody asked for: a panel whose terminal keeps ending
@@ -59,7 +60,7 @@ function errore(r) {
 }
 
 export default class Pannelli extends View {
-  init() {
+  init(_props, cx) {
     this.creando = new Set();
     this.errori = {};
     this.ultima = null;
@@ -72,6 +73,20 @@ export default class Pannelli extends View {
     this.pressed = null;
     this.scroll = ScrollHandle.new();
     this.panels = JSON.parse(localStorage.getItem("panels") ?? "{}");
+    // New tabs with three panes (schede.js): the "+" menu and the keys send "pannelli.scheda-<id>".
+    // The menu (mod nuova-scheda) reads the choices from here: one list, in schede.js.
+    setShared(ELENCO, SCHEDE.map(({ id, nome, programma }) => ({ id, nome, programma })));
+    cx.spawn(async (cx) => {
+      for (;;) {
+        let comando;
+        try { comando = await nextCommand(); } catch { return; } // the app is shutting down
+        const s = schedaDi(comando);
+        if (!s) continue;
+        const space = spaces().find((x) => x.active)?.id;
+        try { await apriScheda(s, { run, panes, space, sleep: (ms) => cx.sleep(ms) }); }
+        catch (e) { notify({ title: "pannelli", body: `Nuova scheda ${s.nome}: ${e?.message ?? e}`, level: "error" }); }
+      }
+    });
   }
 
   // From tabs: the side panel is remembered per space: switching shows that
@@ -379,7 +394,7 @@ export default class Pannelli extends View {
       .child(h_flex().id("tab-scroll").flex_1().min_w(0).h_full().items_center().gap(3).overflow_x_scrollbar().track_scroll(this.scroll)
         .on_size_change((_size, cx) => { if (active >= 0) { this.scroll.scroll_to_item(active); cx.notify(); } })
         .children(shown.map(item)))
-      .child(button("tab-new", "+", () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })))
+      .child(button("tab-new", "+", () => openOverlay({ mod: "nuova-scheda", kind: "popup", width: 250, height: 330 })))
       .when(Boolean(msg), el => el.child(div().id("pannelli-errore").max_w(220).flex_none().text_size(11).text_color(t.blocked).truncate().child(msg)))
       .children(PANNELLI.map(pulsante))
       .when(w?.buttons, el => el.child(button("minimize", w.platform === "windows" ? svg("mods/tabs/win-min.svg").size(16) : "−", () => run("window.minimize")))

@@ -221,7 +221,10 @@ export const shared = (k) => (k === "layout" ? "${NOME}" : null);
 export const notify = (n) => { b().avvisi.push(n.body); return null; };
 export const openOverlay = () => null;
 export const window = () => ({ platform: "macos", titlebar: "none", buttons: false, maximized: false, fullscreen: false, active: true });
-export const settings = () => ({ zoom: 1 });`);
+export const settings = () => ({ zoom: 1 });
+// No mod command arrives in these scenarios: nextCommand rejects, as when the app shuts down.
+export const nextCommand = () => Promise.reject(new Error("herdr-app is shutting down"));
+export const setShared = () => null;`);
 globalThis.MEMORIA = new Map(); // localStorage, new for each scenario
 globalThis.localStorage = { getItem: (k) => MEMORIA.get(k) ?? null, setItem: (k, v) => MEMORIA.set(k, String(v)) };
 
@@ -319,7 +322,7 @@ async function scenario(salvaPrima) {
   const b = new Brudr(fs.readFileSync(layoutFile, "utf8"));
   globalThis.BRUDR = b;
   const v = new Pannelli();
-  v.init();
+  v.init(null, cx(b));
   await quieto(b, v);
   await clic(b, v, "neovim");
   const prima = esito(b);
@@ -346,7 +349,7 @@ async function fileSenzaNeovim() {
   const b = new Brudr(JSON.stringify(d, null, 2) + "\n");
   globalThis.BRUDR = b;
   const v = new Pannelli();
-  v.init();
+  v.init(null, cx(b));
   await quieto(b, v);
   const prima = esito(b);
   await clic(b, v, "neovim");
@@ -359,7 +362,7 @@ async function browser() {
   const b = new Brudr(fs.readFileSync(layoutFile, "utf8"));
   globalThis.BRUDR = b;
   const v = new Pannelli();
-  v.init();
+  v.init(null, cx(b));
   await quieto(b, v);
   const pulsante = trovaElemento(b.albero, "pannello-browser").figli;
   await clic(b, v, "browser");
@@ -380,7 +383,7 @@ async function vista() {
   const b = new Brudr(fs.readFileSync(layoutFile, "utf8"));
   globalThis.BRUDR = b;
   const v = new Pannelli();
-  v.init();
+  v.init(null, cx(b));
   await quieto(b, v);
   const apri = async () => { // what spf-apri does in the panel
     b.core.set("brudr-spf-vista", { address: `t${++b.n}`, name: "brudr-spf-vista", state: "live",
