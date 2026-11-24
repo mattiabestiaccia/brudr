@@ -35,6 +35,10 @@ function shortcut(action) {
 
 const apri = (s) => run(`pannelli.scheda-${s.id}`);
 
+// The popup's height (pannelli/main.js opens it with this). The menu needs a height
+// of its own, as in new-menu: without one the scrolling list of profiles takes none.
+const ALTEZZA = 340;
+
 export default class NuovaScheda extends View {
   init(_props, cx) {
     const machine = spaces().find(s => s.active)?.machine;
@@ -70,7 +74,7 @@ export default class NuovaScheda extends View {
     const elenco = shared(ELENCO) ?? [];
     const terminale = elenco.find(s => s.id === "terminale");
     const profili = elenco.filter(s => s.id !== "terminale");
-    return v_flex().min_h(0).size_full().bg(t.popover).p(5).text_size(12.8)
+    return v_flex().min_h(0).w_full().h(Math.min(ALTEZZA - 10, 167 + Math.max(1, profili.length) * 31)).bg(t.popover).p(5).text_size(12.8)
       .id("nuova-scheda").track_focus(this.handle)
       .on_key_down((e) => {
         if (e.modifiers.control || e.modifiers.platform || e.modifiers.alt) return;

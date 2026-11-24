@@ -398,7 +398,7 @@ export default class Pannelli extends View {
       .child(button("tab-new", "+", () => spaces().find((x) => x.active)?.machine
         // A remote space keeps Herdr's menu: the rain and the profiles are this Mac's.
         ? openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })
-        : openOverlay({ mod: "nuova-scheda", kind: "popup", width: 250, height: 330 })))
+        : openOverlay({ mod: "nuova-scheda", kind: "popup", width: 250, height: 340 })))
       .when(Boolean(msg), el => el.child(div().id("pannelli-errore").max_w(220).flex_none().text_size(11).text_color(t.blocked).truncate().child(msg)))
       .children(PANNELLI.map(pulsante))
       .when(w?.buttons, el => el.child(button("minimize", w.platform === "windows" ? svg("mods/tabs/win-min.svg").size(16) : "−", () => run("window.minimize")))
