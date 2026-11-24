@@ -1,10 +1,34 @@
 #!/usr/bin/env python3
-"""Detached open_with handler for Superfile on macOS; no shell or temporary files."""
+"""Detached open_with handler for Superfile on macOS; no shell or temporary files.
+
+Superfile starts it detached from its terminal (setsid, no stdin or stdout), with
+the file as the only argument. JSON, TOML, YAML and XML become a colored Nushell
+table in a pager (less), q to leave:
+- in brudr's Superfile panel (a terminal labeled brudr.panel=spf), the table takes
+  Superfile's place in the panel: a private terminal brudr-spf-vista, shown in the
+  layout block spf-vista beside the panel's own; q shows Superfile again;
+- in a brudr terminal of a tab, the table opens in a new terminal to its right;
+  q closes it;
+- elsewhere (Superfile outside brudr, brudr not answering), in a macOS window,
+  in plain text, as before.
+The file's bytes reach the table through a named pipe in a folder of our own
+(0700, in the panel's private TMPDIR there): never in a file, never in an argument.
+The table's own terminal gets only the pipe's path.
+
+`spf-apri --vista <pipe> pannello|accanto` is that table's program (it runs in the
+new terminal, started by herdr-core with the login environment, not ours).
+"""
+import json
 import os
 from pathlib import Path
+import re
+import signal
 import stat
 import subprocess
 import sys
+import tempfile
+import threading
+import time
 
 MARKDOWN = frozenset("md markdown mdown mkd mkdn".split())
 CODE = frozenset("""
@@ -17,6 +41,20 @@ CODE = frozenset("""
 DATA = {"json": "json", "jsonc": "json", "toml": "toml", "yaml": "yaml", "yml": "yaml", "xml": "xml"}
 EXTENSIONS = MARKDOWN | CODE | DATA.keys()
 LIMIT = 1024 * 1024  # bound parsing and the size of the read-only preview
+
+# brudr: the Superfile panel and the view that takes its place (mod pannelli, blocchi.js).
+STACK = "panel-body"
+PANNELLO, VISTA = "files", "spf-vista"
+SPF, NOME_VISTA = "brudr-spf", "brudr-spf-vista"
+PANEL, PRIVATE = "brudr.panel", "brudr.private"
+ATTESA = 10  # seconds for the view to take the data, and for the data to come
+CHIAMATA = 5  # seconds for one hc or herdr-app call
+MSG_GRANDE = "Anteprima non disponibile: il file supera 1 MiB. Aprilo con E."
+MSG_REGOLARE = "Anteprima disponibile solo per file regolari."
+MSG_FORMATO = "Nushell non riesce a leggere il file in questo formato. Aprilo con E."
+MSG_TABELLA = "La tabella supera 1 MiB. Apri il file con E."
+MSG_NU = "Anteprima Nushell non disponibile. Apri il file con E."
+ANSI = re.compile(rb"\x1b\[[0-9;:?]*[ -/]*[@-~]")
 
 # Superfile detaches handlers from the TTY. AppKit shows the table in its own
 # modal window instead of writing into the TUI or saving/restoring a terminal tab.
@@ -52,29 +90,364 @@ function run(argv) {
 '''
 
 
-def table(path, fmt):
+def strumenti():
+    """PATH for hc, herdr-app, nu and less: the core gives programs the login
+    session's environment, not a shell's PATH."""
+    casa = os.path.expanduser("~")
+    prima = [f"{casa}/bin", f"{casa}/.local/bin", "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
+    return os.pathsep.join(prima + [d for d in os.environ.get("PATH", "").split(os.pathsep) if d])
+
+
+def leggi(path):
+    """The file's bytes (at most LIMIT), or a message: (bytes, None) or (None, str)."""
     try:
         fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
         with os.fdopen(fd, "rb") as stream:
             if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
-                return b"Anteprima disponibile solo per file regolari."
+                return None, MSG_REGOLARE
             raw = stream.read(LIMIT + 1)
-        if len(raw) > LIMIT:
-            return b"Anteprima non disponibile: il file supera 1 MiB. Aprilo con E."
-        source = ("$env.config.use_ansi_coloring = false; "
-                  f"$in | from {fmt} | table --expand --width 100")
+    except OSError:
+        return None, MSG_NU
+    if len(raw) > LIMIT:
+        return None, MSG_GRANDE
+    return raw, None
+
+
+def tabella(raw, fmt, colori=False, larghezza=100):
+    """The Nushell table of raw as bytes, or a message as bytes. Data on stdin only."""
+    if fmt not in set(DATA.values()):
+        return MSG_FORMATO.encode()
+    source = (f"$env.config.use_ansi_coloring = {'true' if colori else 'false'}; "
+              f"$in | from {fmt} | table --expand --width {max(20, int(larghezza))}")
+    try:
+        # No config file: the user's config.nu sets no colors (the defaults are the
+        # same) and runs hooks (zoxide) a read-only table does not need.
         proc = subprocess.run(["nu", "--stdin", "--no-config-file", "-c", source],
-                              input=raw, capture_output=True, timeout=10)
-        if proc.returncode:
-            return b"Nushell non riesce a leggere il file in questo formato. Aprilo con E."
-        if len(proc.stdout) > LIMIT:
-            return b"La tabella supera 1 MiB. Apri il file con E."
-        return proc.stdout or b"Tabella vuota."
+                              input=raw, capture_output=True, timeout=10, env={**os.environ, "PATH": strumenti()})
     except (OSError, subprocess.TimeoutExpired):
-        return b"Anteprima Nushell non disponibile. Apri il file con E."
+        return MSG_NU.encode()
+    if proc.returncode:
+        return MSG_FORMATO.encode()
+    # The same limit as the window's: the visible text, without color codes.
+    if len(ANSI.sub(b"", proc.stdout)) > LIMIT:
+        return MSG_TABELLA.encode()
+    return proc.stdout or b"Tabella vuota."
+
+
+def table(path, fmt):
+    """The plain-text table of the window (the fallback outside brudr)."""
+    raw, messaggio = leggi(path)
+    if messaggio:
+        return messaggio.encode()
+    return tabella(raw, fmt)
+
+
+def finestra(path, fmt):
+    title = f"Nushell — {path.name}"
+    return subprocess.run(["/usr/bin/osascript", "-l", "JavaScript", "-e", VIEW, title],
+                          input=table(path, fmt)).returncode
+
+
+# ---- brudr: herdr-core (hc) and the window (herdr-app)
+
+def chiama(argv):
+    """(code, stdout) of a short hc or herdr-app call; (None, "") when it cannot run."""
+    try:
+        p = subprocess.run(argv, capture_output=True, text=True, timeout=CHIAMATA,
+                           stdin=subprocess.DEVNULL, env={**os.environ, "PATH": strumenti()})
+    except (OSError, subprocess.TimeoutExpired):
+        return None, ""
+    return p.returncode, p.stdout
+
+
+def record(terminale):
+    """The core's record of a terminal (address or name), or None."""
+    code, out = chiama(["hc", "get", "--json", terminale])
+    if code != 0:
+        return None
+    try:
+        rec = json.loads(out)
+    except ValueError:
+        return None
+    if isinstance(rec, dict) and isinstance(rec.get("terminal"), dict):
+        rec = rec["terminal"]
+    return rec if isinstance(rec, dict) else None
+
+
+def etichette(rec):
+    l = (rec or {}).get("labels")
+    return l if isinstance(l, dict) else {}
+
+
+def nostra(rec):
+    """A terminal is the view's only with the labels the view gives it."""
+    l = etichette(rec)
+    return l.get(PANEL) == VISTA and bool(l.get(PRIVATE))
+
+
+def finestra_do(comando, argomenti):
+    code, out = chiama(["herdr-app", "do", comando, json.dumps(argomenti)])
+    return code == 0, out
+
+
+class Canale:
+    """A named pipe in a folder of our own; the data passes, nothing stays on disk."""
+
+    def __enter__(self):
+        # TMPDIR read now: in the Superfile panel it is the panel's private one.
+        self.cartella = tempfile.mkdtemp(prefix="spf-vista.", dir=os.environ.get("TMPDIR") or None)
+        self.fifo = os.path.join(self.cartella, "dati")
+        os.mkfifo(self.fifo, 0o600)
+        return self
+
+    def consegna(self, dati, attesa=ATTESA):
+        """Writes dati once the view opened the pipe; False if it never did."""
+        fine = time.monotonic() + attesa
+        while True:
+            try:
+                fd = os.open(self.fifo, os.O_WRONLY | os.O_NONBLOCK)
+                break
+            except OSError:  # ENXIO: nobody reads yet
+                if time.monotonic() > fine:
+                    return False
+                time.sleep(0.05)
+        try:
+            os.set_blocking(fd, True)
+            with os.fdopen(fd, "wb") as f:
+                f.write(dati)
+        except OSError:
+            return False
+        return True
+
+    def __exit__(self, *_):
+        try:
+            os.unlink(self.fifo)
+        except OSError:
+            pass
+        try:
+            os.rmdir(self.cartella)
+        except OSError:
+            pass
+
+
+def avvia_nel_pannello(argv):
+    """The view in the Superfile panel's place. True when it is shown."""
+    rec = record(NOME_VISTA)
+    if rec is not None:
+        if not nostra(rec):
+            return False  # someone else's terminal under the view's name: leave it
+        # A view left under another panel: the new one takes its place.
+        if rec.get("state") == "live":
+            chiama(["hc", "kill", NOME_VISTA])
+        chiama(["hc", "rm", NOME_VISTA])
+    run = ["hc", "run", "--bg", "--json", "--no-parent", "--no-notify", "--rm", "--name", NOME_VISTA,
+           "--label", f"{PANEL}={VISTA}", "--label", f"{PRIVATE}=1",
+           # Home, not the file's folder: the core keeps the launch folder in its records.
+           "--cwd", os.path.expanduser("~"), "--", *argv]
+    for tentativo in range(4):  # a killed view's name may take a moment to free
+        code, _ = chiama(run)
+        if code == 0:
+            break
+        if code is None or tentativo == 3:
+            return False
+        time.sleep(0.25)
+    # The block may be on its way back (the mod puts back a block brudr dropped).
+    for tentativo in range(8):
+        ok, _ = finestra_do("layout.select", {"stack": STACK, "child": VISTA})
+        if ok:
+            break
+        if tentativo == 7:
+            chiama(["hc", "kill", NOME_VISTA])
+            return False
+        time.sleep(0.25)
+    finestra_do("layout.show", {"id": "panel"})
+    finestra_do("pane.focus", {"terminal": NOME_VISTA})
+    return True
+
+
+def pane_di(terminale):
+    """The pane of a tab showing this terminal, from herdr-app ls; None if none."""
+    code, out = chiama(["herdr-app", "ls"])
+    if code != 0:
+        return None
+    try:
+        mondo = json.loads(out)
+    except ValueError:
+        return None
+    for space in mondo.get("spaces") or []:
+        for tab in space.get("tabs") or []:
+            for t in tab.get("terminals") or []:
+                if isinstance(t, dict) and t.get("terminal") == terminale and t.get("pane"):
+                    return t["pane"]
+    return None
+
+
+def avvia_accanto(argv, terminale):
+    """The view in a new terminal right of the one Superfile runs in."""
+    pane = pane_di(terminale)
+    if not pane:
+        return False
+    ok, _ = finestra_do("pane.split", {"direction": "right", "pane": pane, "argv": argv})
+    return ok
+
+
+def in_brudr(path, fmt):
+    """Shows the table in brudr; False when brudr cannot (the window then)."""
+    terminale = os.environ.get("HC_TERMINAL_ID")
+    if not terminale:
+        return False
+    rec = record(terminale)
+    if rec is None:
+        return False
+    l = etichette(rec)
+    if l.get(PANEL) == "spf" and l.get(PRIVATE):
+        modo = "pannello"
+    elif l.get(PRIVATE):
+        return False  # another private terminal: its table stays off the core
+    else:
+        modo = "accanto"
+    raw, messaggio = leggi(path)
+    testa = json.dumps({"nome": path.name, "formato": fmt, "messaggio": messaggio}).encode() + b"\n"
+    with Canale() as canale:
+        argv = [os.path.abspath(__file__), "--vista", canale.fifo, modo]
+        avviata = avvia_nel_pannello(argv) if modo == "pannello" else avvia_accanto(argv, terminale)
+        if not avviata:
+            return False
+        if canale.consegna(testa + (raw or b"")):
+            return True
+        if modo == "pannello":
+            rec = record(NOME_VISTA)
+            if rec is not None and nostra(rec):
+                chiama(["hc", "kill", NOME_VISTA])
+        return False
+
+
+# ---- the view, in its own terminal
+
+def ricevi(fifo):
+    """(header, raw) from the pipe; raises on timeout or a malformed header."""
+    def scaduto(*_):
+        raise TimeoutError("no data")
+    signal.signal(signal.SIGALRM, scaduto)
+    signal.alarm(ATTESA)
+    try:
+        with open(fifo, "rb") as f:
+            testa = json.loads(f.readline(64 * 1024))
+            raw = f.read(LIMIT + 1)
+    finally:
+        signal.alarm(0)
+    if not isinstance(testa, dict):
+        raise ValueError("header")
+    return testa, raw
+
+
+def larghezza():
+    try:
+        return os.get_terminal_size(sys.stdout.fileno()).columns
+    except OSError:
+        return 80
+
+
+def testo(testa, raw, modo, colonne):
+    nome = str(testa.get("nome") or "")
+    uscita = "q torna a Superfile" if modo == "pannello" else "q chiude"
+    titolo = f"\x1b[1mNushell · {nome}\x1b[0m  \x1b[2m{uscita}\x1b[0m\n\n".encode()
+    messaggio = testa.get("messaggio")
+    if messaggio:
+        return titolo + str(messaggio).encode() + b"\n"
+    if len(raw) > LIMIT:
+        return titolo + MSG_GRANDE.encode() + b"\n"
+    return titolo + tabella(raw, testa.get("formato"), colori=True, larghezza=colonne)
+
+
+def pager(dati, modo):
+    """less on dati until q (True), or until the terminal width changed (False)."""
+    prompt = "?e(fine) .q torna a Superfile" if modo == "pannello" else "?e(fine) .q chiude"
+    env = {**os.environ, "PATH": strumenti(), "LESS": "", "LESSOPEN": "", "LESSCLOSE": "",
+           # No shell, pipe, editor or log file from less, and no history file.
+           "LESSSECURE": "1", "LESSHISTFILE": "-"}
+    colonne = larghezza()
+    try:
+        p = subprocess.Popen(["less", "-R", "-S", "-+F", "--mouse", "--wheel-lines=3", "-Ps" + prompt],
+                             stdin=subprocess.PIPE, env=env)
+    except OSError:  # no less: the table as it is, and Enter to leave
+        sys.stdout.buffer.write(dati + b"\n(Invio per uscire)")
+        sys.stdout.flush()
+        sys.stdin.readline()
+        return True
+
+    def scrivi():  # less reads as it shows: a large table must not block the loop
+        try:
+            p.stdin.write(dati)
+            p.stdin.close()
+        except OSError:
+            pass
+    threading.Thread(target=scrivi, daemon=True).start()
+    cambiata = None
+    while True:
+        try:
+            p.wait(timeout=0.1)
+            return True
+        except subprocess.TimeoutExpired:
+            pass
+        ora = larghezza()
+        if ora == colonne:
+            cambiata = None
+            continue
+        # The view attaching (or the panel resized): a new table, once it settles.
+        if cambiata is None:
+            cambiata = time.monotonic()
+        elif time.monotonic() - cambiata > 0.15:
+            p.terminate()
+            p.wait()
+            return False
+
+
+def torna_a_superfile():
+    finestra_do("layout.select", {"stack": STACK, "child": PANNELLO})
+    finestra_do("pane.focus", {"terminal": SPF})
+
+
+def vista(fifo, modo):
+    if modo not in ("pannello", "accanto"):
+        return 64
+    os.umask(0o077)
+    signal.signal(signal.SIGINT, lambda *_: None)  # Ctrl-C belongs to less
+    try:
+        try:
+            testa, raw = ricevi(fifo)
+        except (OSError, ValueError, TimeoutError):
+            testa, raw = {"messaggio": "La vista non ha ricevuto il file. Riprova da Superfile."}, b""
+        finally:
+            try:
+                os.unlink(fifo)
+            except OSError:
+                pass
+        salvo = None
+        try:
+            import termios
+            salvo = termios.tcgetattr(sys.stdin.fileno())
+        except Exception:
+            pass
+        while True:
+            colonne = larghezza()
+            if pager(testo(testa, raw, modo, colonne), modo):
+                break
+            if salvo is not None:
+                termios.tcsetattr(sys.stdin.fileno(), termios.TCSANOW, salvo)
+        # q: back to Superfile in the panel. A kill or hangup ends Python before this.
+        if modo == "pannello":
+            torna_a_superfile()
+    finally:
+        # The core saves an ended terminal's last screen: leave it blank.
+        sys.stdout.write("\x1b[3J\x1b[H\x1b[2J")
+        sys.stdout.flush()
+    return 0
 
 
 def main(argv):
+    if len(argv) == 3 and argv[0] == "--vista":
+        return vista(argv[1], argv[2])
     if len(argv) != 1:
         return 64
     # Go passes exactly one path argument. Make it absolute, without interpreting
@@ -89,9 +462,9 @@ def main(argv):
     elif ext in CODE:
         command = ["/usr/bin/open", "-a", "Zed", str(path)]
     elif ext in DATA:
-        title = f"Nushell — {path.name}"
-        return subprocess.run(["/usr/bin/osascript", "-l", "JavaScript", "-e", VIEW, title],
-                              input=table(path, DATA[ext])).returncode
+        if in_brudr(path, DATA[ext]):
+            return 0
+        return finestra(path, DATA[ext])
     else:
         command = ["/usr/bin/open", str(path)]
     return subprocess.run(command).returncode

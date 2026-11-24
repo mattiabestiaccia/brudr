@@ -4,8 +4,10 @@
 Usage: crea-layout <herdr-transparent.json> <brudr-pannelli.json>
 
 Same window as the source (look, transparency, sidebar, status), with two changes:
-- the right panel's stack "panel-body": six named terminal blocks and one
-  native browser block, without a header, on the panel's own gray background;
+- the right panel's stack "panel-body": six named terminal blocks, one native
+  browser block, and before Superfile's block the one of its Nushell view
+  (spf-vista, shown by spf-apri in Superfile's place), without a header, on the
+  panel's own gray background;
 - the tab bar block "tabs" runs the `pannelli` mod instead of `tabs`, putting
   the side panel buttons in place of Files and Changes.
 The ids "files" and "changes" stay. The source file is only read.
@@ -17,6 +19,7 @@ import sys
 
 TITOLO = "brudr pannelli"
 FIGLI = [
+    ("spf-vista", "brudr-spf-vista"),  # before files: see VISTE in mods/pannelli/blocchi.js
     ("files", "brudr-spf"),
     ("neovim", "brudr-nvim"),
     ("changes", "brudr-hunk"),

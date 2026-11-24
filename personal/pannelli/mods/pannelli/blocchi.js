@@ -19,9 +19,28 @@ export const PANNELLI = [
   { child: "browser", tipo: "web", nome: "Browser", privato: false, web: { url: "https://example.com/" } },
 ];
 
+// Views that take a panel's place for a while, without a button of their own.
+// spf-apri starts the view's terminal (brudr-spf-vista, private like Superfile)
+// and selects its block; q in the view selects the panel again. The block sits
+// just before the panel's: if brudr drops it while it is shown (its terminal
+// ended), the panel's block slides into its place and becomes the shown one
+// (src/layout.rs, remove_inner).
+export const VISTE = [
+  { child: "spf-vista", tipo: "spf-vista", nome: "Superfile", privato: true, di: "files" },
+];
+
+// Every block of the stack in its order: each view just before its panel.
+export const ORDINE = PANNELLI.flatMap((p) => [...VISTE.filter((v) => v.di === p.child), p]);
+
 export const STACK = "panel-body";
 
 export const nomeDi = (p) => `brudr-${p.tipo}`;
+
+// The panel a shown child belongs to: itself, or the panel a view stands for.
+export function pannelloDi(child) {
+  const v = VISTE.find((x) => x.child === child);
+  return PANNELLI.find((p) => p.child === (v ? v.di : child)) ?? null;
+}
 
 // The block as crea-layout writes it (same keys, same order).
 export function blocco(p) {
@@ -39,8 +58,8 @@ export function trova(n, id) {
   return null;
 }
 
-// The layout file's text with the panels `figli` (child ids) put back in the
-// panel-body stack, each after the panels that come before it.
+// The layout file's text with the blocks `figli` (child ids of panels and views)
+// put back in the panel-body stack, each after the blocks that come before it.
 // { testo, aggiunti }: aggiunti lists the blocks the file lacked. When the file
 // already has them all (brudr lost the block in memory but did not save yet),
 // testo differs from the file by one final newline only: writing it still
@@ -57,9 +76,9 @@ export function ripara(testo, figli) {
     return { errore: `no stack "${STACK}" in the layout file` };
   }
   const aggiunti = [];
-  PANNELLI.forEach((p, i) => {
+  ORDINE.forEach((p, i) => {
     if (!figli.includes(p.child) || body.children.some((c) => c?.id === p.child)) return;
-    const prima = new Set(PANNELLI.slice(0, i).map((x) => x.child));
+    const prima = new Set(ORDINE.slice(0, i).map((x) => x.child));
     let dove = 0;
     body.children.forEach((c, j) => {
       if (prima.has(c?.id)) dove = j + 1;

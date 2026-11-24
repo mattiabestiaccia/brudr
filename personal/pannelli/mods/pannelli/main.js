@@ -19,12 +19,15 @@
 //   a click on a panel whose block is gone puts it back, then shows it;
 // - refuses a terminal that took a panel's name without the panel's labels;
 // - lets hunk follow the space like Changes did, through a folder file that
-//   brudr-pannello watches. Superfile and Neovim stay where they are (D2, D3).
+//   brudr-pannello watches. Superfile and Neovim stay where they are (D2, D3);
+// - counts a view (blocchi.js VISTE: the Nushell table spf-apri shows in
+//   Superfile's place) as its panel: the panel's button, the space's memory,
+//   and a click on the button shows the view again while its terminal lives.
 // Programs never exit on their own: brudr-pannello restarts them in a loop.
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, ScrollHandle } from "gpui-base";
 import { spaces, panes, focused, terminals, layout, theme, run, hc, exec, home, appHome, readTextFile, writeTextFile, shared, notify, openOverlay, window, settings } from "herdr";
-import { PANNELLI, STACK, nomeDi, trova, ripara } from "./blocchi.js";
+import { PANNELLI, VISTE, ORDINE, STACK, nomeDi, pannelloDi, trova, ripara } from "./blocchi.js";
 
 const PANEL = "brudr.panel", PRIVATE = "brudr.private";
 // Between two repairs nobody asked for: a panel whose terminal keeps ending
@@ -77,7 +80,8 @@ export default class Pannelli extends View {
   syncPanel(space, panel, body) {
     if (!space || !panel) return;
     const presenti = (body?.children ?? []).map((c) => c.id);
-    const now = panel.hidden ? null : body?.active ?? null;
+    // A view counts as its panel: the space remembers the panel, not the view.
+    const now = panel.hidden || !body?.active ? null : pannelloDi(body.active)?.child ?? body.active;
     if (space.id !== this.space) {
       const first = this.space === undefined;
       this.space = space.id; this.pending = null;
@@ -153,7 +157,7 @@ export default class Pannelli extends View {
 
   attivo() {
     const root = layout(), panel = trova(root, "panel"), body = trova(root, STACK);
-    const p = PANNELLI.find((x) => x.child === body?.active) ?? null;
+    const p = pannelloDi(body?.active);
     return { p, visibile: Boolean(p && panel && !panel.hidden), body };
   }
 
@@ -161,9 +165,17 @@ export default class Pannelli extends View {
     return (this.attivo().body?.children ?? []).some((c) => c.id === p.child);
   }
 
-  // Shows the panel; `nuovo`: its block needs a fresh view.
-  mostra(cx, p, nuovo) {
-    run("layout.select", { stack: STACK, child: p.child });
+  // A view of the panel still open (its terminal live, labels ours), or null.
+  vistaAperta(p) {
+    const v = VISTE.find((x) => x.di === p.child);
+    if (!v || !this.haBlocco(v)) return null;
+    const rec = record(v);
+    return rec && nostro(rec, v) ? v : null;
+  }
+
+  // Shows the panel (or `child`, a view of it); `nuovo`: its block needs a fresh view.
+  mostra(cx, p, nuovo, child = p.child) {
+    run("layout.select", { stack: STACK, child });
     run("layout.show", { id: "panel" });
     if (nuovo) this.riaggancia(cx);
   }
@@ -244,8 +256,9 @@ export default class Pannelli extends View {
       const presenti = new Set((body.children ?? []).map((c) => c.id));
       if (!this.visti) this.visti = new Set(presenti);
       for (const id of presenti) this.visti.add(id);
-      // Blocks seen in this layout and now gone: their terminal ended.
-      const mancanti = PANNELLI.filter((p) => this.visti.has(p.child) && !presenti.has(p.child));
+      // Blocks seen in this layout and now gone: their terminal ended. A view's
+      // block comes back too, for the next view (spf-apri selects it).
+      const mancanti = ORDINE.filter((p) => this.visti.has(p.child) && !presenti.has(p.child));
       if (mancanti.length) this.ripristina(cx, mancanti);
       const p = this.daMostrare;
       if (p && presenti.has(p.child)) {
@@ -299,7 +312,9 @@ export default class Pannelli extends View {
         return;
       }
       const prima = this.attivo();
-      this.mostra(cx, p, creato && prima.visibile && prima.p === p);
+      // A view left open under another panel takes the panel's place again.
+      const vista = this.vistaAperta(p);
+      this.mostra(cx, p, !vista && creato && prima.visibile && prima.p === p, vista?.child);
       cx.notify();
     });
   }

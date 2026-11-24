@@ -29,7 +29,9 @@ TRASPARENTE = os.path.join(REPO, "personal", "transparency", "herdr-transparent.
 SEGRETO = "FINTO_TOKEN_0000_non_vero"
 PRIVATI = {"spf", "nvim", "privato"}
 TIPI = ["spf", "nvim", "hunk", "quota", "tasti", "privato"]
-FIGLI = ["files", "neovim", "changes", "quota", "tasti", "privato", "browser"]
+BOTTONI = ["files", "neovim", "changes", "quota", "tasti", "privato", "browser"]
+# The blocks of the stack: Superfile's Nushell view (no button) just before Superfile.
+FIGLI = ["spf-vista", *BOTTONI]
 WEB = {"web": {"url": "https://example.com/"}}
 
 
@@ -311,7 +313,7 @@ class Layout(unittest.TestCase):
         self.assertEqual(list(figli), FIGLI)
         self.assertEqual(figli["browser"]["content"], WEB)
         self.assertEqual({k: v["content"]["terminal"] for k, v in figli.items() if k != "browser"},
-                         {"files": "brudr-spf", "neovim": "brudr-nvim", "changes": "brudr-hunk",
+                         {"spf-vista": "brudr-spf-vista", "files": "brudr-spf", "neovim": "brudr-nvim", "changes": "brudr-hunk",
                           "quota": "brudr-quota", "tasti": "brudr-tasti", "privato": "brudr-privato"})
         self.assertEqual([k for k, v in figli.items() if "background" in v], [], "Private has the panel's gray too")
         panel = trova(d, "panel")
@@ -375,7 +377,13 @@ fn main() {
     assert_eq!(shown.find("neovim").and_then(layout::Node::terminal), Some("brudr-nvim"), "clicks kept on reload keep the block");
     assert!(shown.select("panel-body", "neovim"), "layout.select finds the block again");
     println!("save ok");
-    for (id, name) in [("files", "brudr-spf"), ("neovim", "brudr-nvim"), ("changes", "brudr-hunk"), ("quota", "brudr-quota"), ("tasti", "brudr-tasti"), ("privato", "brudr-privato")] {
+    // Superfile's view shown, its terminal ended: Superfile slides into its place.
+    let mut vista = n.clone();
+    assert!(vista.select("panel-body", "spf-vista"));
+    assert!(vista.remove_slot("spf-vista").is_some());
+    assert_eq!(vista.find("panel-body").and_then(|s| s.active_child()).map(|c| c.id.as_str()), Some("files"));
+    println!("vista ok");
+    for (id, name) in [("spf-vista", "brudr-spf-vista"), ("files", "brudr-spf"), ("neovim", "brudr-nvim"), ("changes", "brudr-hunk"), ("quota", "brudr-quota"), ("tasti", "brudr-tasti"), ("privato", "brudr-privato")] {
         assert_eq!(n.find(id).and_then(layout::Node::terminal), Some(name), "{id}");
     }
     let browser = n.find("browser").unwrap();
@@ -402,6 +410,7 @@ fn main() {
         self.assertEqual(r.returncode, 0, r.stderr[-2000:])
         self.assertIn("layout ok", r.stdout)
         self.assertIn("save ok", r.stdout)
+        self.assertIn("vista ok", r.stdout)
 
 
 def pathlib_url(p):
@@ -440,7 +449,7 @@ class ModPannelli(unittest.TestCase):
 
     def test_stessi_pannelli_della_mod_del_layout_e_del_programma(self):
         mod = re.findall(r'\{ child: "(\w+)", tipo: "(\w+)", nome: "[^"]+", privato: (true|false)', self.blocchi)
-        self.assertEqual([(c, t) for c, t, _ in mod], list(zip(FIGLI, [*TIPI, "web"])))
+        self.assertEqual([(c, t) for c, t, _ in mod], list(zip(BOTTONI, [*TIPI, "web"])))
         self.assertEqual({t for _, t, p in mod if p == "true"}, PRIVATI)
         programma = open(PANNELLO).read()
         self.assertIn("spf|nvim|privato) privato=1", programma)
@@ -461,7 +470,7 @@ class ModPannelli(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "node not installed")
     def test_blocchi_della_mod_uguali_a_quelli_di_crea_layout(self):
         """The blocks the mod puts back are the ones crea-layout writes."""
-        mod = node('import { PANNELLI, blocco } from %s; console.log(JSON.stringify(PANNELLI.map(blocco)));'
+        mod = node('import { ORDINE, blocco } from %s; console.log(JSON.stringify(ORDINE.map(blocco)));'
                    % json.dumps(pathlib_url(BLOCCHI)))
         # -B: no __pycache__ beside crea-layout in the checkout.
         r = subprocess.run([sys.executable, "-B", "-c", "import importlib.machinery as m; c = m.SourceFileLoader('c', %r).load_module();"
@@ -538,6 +547,53 @@ class ModPannelli(unittest.TestCase):
         self.assertEqual(browser["chiamatePrimaDiNeovim"], 0, "browser needs no core")
         self.assertTrue(all("brudr-web" not in args for args in browser["chiamate"]))
         self.assertEqual(browser["ritorno"]["falliti"], [])
+
+    @unittest.skipUnless(shutil.which("node"), "node not installed")
+    def test_vista_di_superfile_al_posto_del_pannello(self):
+        """spf-apri's Nushell view in Superfile's place: shown, q, killed, left under Neovim."""
+        d = tempfile.mkdtemp(prefix="pannelli-vista-")
+        self.addCleanup(shutil.rmtree, d, True)
+        layout = os.path.join(d, "brudr-pannelli.json")
+        r = subprocess.run([sys.executable, "-B", CREA, TRASPARENTE, layout], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        r = subprocess.run(["node", PROVA_MOD, MODS, layout], capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        e = json.loads(r.stdout)["vista"]
+        riga = lambda k: (e[k]["attivo"], e[k]["visibile"], e[k]["pannello"])
+        for k in e:
+            if isinstance(e[k], dict) and "falliti" in e[k]:
+                self.assertEqual((e[k]["falliti"], e[k]["avvisi"]), ([], []), k)
+                self.assertEqual(e[k]["blocchi"], FIGLI, k)
+                self.assertEqual(e[k]["blocchiSuDisco"], FIGLI, k)
+        self.assertEqual(riga("superfile"), ("files", True, "files"))
+        # The view is shown; the Superfile button stays the lit one.
+        self.assertEqual(riga("aperta"), ("spf-vista", True, "files"))
+        # q: Superfile again; the hidden block stays, the mod writes nothing.
+        self.assertEqual(riga("chiusa"), ("files", True, "files"))
+        self.assertTrue(e["chiusa"]["fileUguale"])
+        # Killed while shown: Superfile slides into its place, the mod puts the block back.
+        self.assertEqual(riga("uccisa"), ("files", True, "files"))
+        self.assertEqual(riga("sottoNeovim"), ("neovim", True, "neovim"))
+        self.assertEqual(riga("ritorno"), ("spf-vista", True, "files"), "a live view comes back with Superfile")
+        self.assertEqual(riga("nascosta")[1], False, "Superfile's button hides the panel also from the view")
+
+    @unittest.skipUnless(shutil.which("node"), "node not installed")
+    def test_vista_uguale_in_mod_e_spf_apri(self):
+        """The names spf-apri uses are the mod's: block, terminal, labels, stack, panel."""
+        import runpy
+        a = runpy.run_path(os.path.join(QUI, "spf-apri"))
+        v = node('import { VISTE, STACK, nomeDi, ripara } from %s; const t = process.argv[1];'
+                 'console.log(JSON.stringify({ v: VISTE, nome: nomeDi(VISTE[0]), STACK, r: ripara(t, ["spf-vista"]) }));'
+                 % json.dumps(pathlib_url(BLOCCHI)),
+                 json.dumps({"id": "panel-body", "type": "stack", "children": [
+                     {"id": "files", "type": "block", "content": {"terminal": "brudr-spf"}}]}))
+        self.assertEqual(v["v"], [{"child": a["VISTA"], "tipo": a["VISTA"], "nome": "Superfile", "privato": True,
+                                   "di": a["PANNELLO"]}])
+        self.assertEqual((v["nome"], v["STACK"], a["SPF"], a["PANEL"], a["PRIVATE"]),
+                         (a["NOME_VISTA"], a["STACK"], "brudr-spf", "brudr.panel", "brudr.private"))
+        figli = json.loads(v["r"]["testo"])["children"]
+        self.assertEqual([c["id"] for c in figli], ["spf-vista", "files"], "the view's block goes before Superfile's")
+        self.assertEqual(figli[0]["content"], {"terminal": "brudr-spf-vista"})
 
     def test_niente_layout_switch_per_rimettere_i_blocchi(self):
         """layout.switch saves before it loads: it would write the file without the block."""

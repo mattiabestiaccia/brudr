@@ -111,10 +111,16 @@ class Brudr {
     Brudr.applica(clic, this.chrome);
   }
   // terminal_ended: the shown block of an ended terminal leaves the layout in memory.
-  terminaleFinito(nome) {
+  // `vicino`: also as remove_inner (src/layout.rs) does with a stack's active
+  // child: the neighbor that slides into its place (or the last one) becomes
+  // active. The Neovim scenarios below were written without it and keep the
+  // removed id as active; the view scenario uses it.
+  terminaleFinito(nome, vicino = false) {
     for (const n of nodi(this.chrome)) {
       const i = (n.children ?? []).findIndex((c) => c.content?.terminal === nome);
-      if (i >= 0) n.children.splice(i, 1);
+      if (i < 0) continue;
+      const [via] = n.children.splice(i, 1);
+      if (vicino && n.active === via.id) n.active = (n.children[i] ?? n.children[n.children.length - 1])?.id;
     }
   }
   run(nome, a = {}) {
@@ -164,9 +170,9 @@ class Brudr {
     return { code: 1, stdout: "", stderr: "not in the fake core" };
   }
   // hc kill on a terminal made with --rm: the record goes, the block's stream ends.
-  uccidi(nome) {
+  uccidi(nome, vicino = false) {
     this.core.delete(nome);
-    this.terminaleFinito(nome);
+    this.terminaleFinito(nome, vicino);
   }
 }
 
@@ -367,6 +373,52 @@ async function browser() {
     memorizzato: JSON.parse(MEMORIA.get("panels")) };
 }
 
-const out = { salvaPrima: await scenario(true), senzaSalvare: await scenario(false), fileSenzaNeovim: await fileSenzaNeovim(), browser: await browser() };
+// Scenario: Superfile's Nushell view (spf-apri starts brudr-spf-vista and
+// selects its block; q selects Superfile again and the view's terminal ends).
+async function vista() {
+  globalThis.MEMORIA = new Map();
+  const b = new Brudr(fs.readFileSync(layoutFile, "utf8"));
+  globalThis.BRUDR = b;
+  const v = new Pannelli();
+  v.init();
+  await quieto(b, v);
+  const apri = async () => { // what spf-apri does in the panel
+    b.core.set("brudr-spf-vista", { address: `t${++b.n}`, name: "brudr-spf-vista", state: "live",
+      labels: { "brudr.panel": "spf-vista", "brudr.private": "1" } });
+    b.run("layout.select", { stack: "panel-body", child: "spf-vista" });
+    await quieto(b, v);
+  };
+  const stato = () => ({ ...esito(b), pannello: v.attivo().p?.child ?? null });
+  await clic(b, v, "files");
+  const superfile = stato();
+  const scrittePrima = [...b.file.values()].join();
+  await apri();
+  const aperta = stato();
+  // q: spf-apri's view selects Superfile, then ends; its block was hidden: no view, no drop.
+  b.run("layout.select", { stack: "panel-body", child: "files" });
+  b.core.delete("brudr-spf-vista");
+  await quieto(b, v);
+  const chiusa = { ...stato(), fileUguale: [...b.file.values()].join() === scrittePrima };
+  // The view's terminal killed while shown: brudr drops its block, Superfile slides in.
+  await apri();
+  b.uccidi("brudr-spf-vista", true);
+  await quieto(b, v);
+  b.salva();
+  const uccisa = stato();
+  // A view left under Neovim comes back with the Superfile button.
+  await apri();
+  await clic(b, v, "neovim");
+  const sottoNeovim = stato();
+  await clic(b, v, "files");
+  const ritorno = stato();
+  // Superfile's button while the view is shown hides the panel, like Superfile's.
+  await clic(b, v, "files");
+  const nascosta = stato();
+  return { superfile, aperta, chiusa, uccisa, sottoNeovim, ritorno, nascosta,
+    memorizzato: JSON.parse(MEMORIA.get("panels") ?? "{}") };
+}
+
+const out = { salvaPrima: await scenario(true), senzaSalvare: await scenario(false), fileSenzaNeovim: await fileSenzaNeovim(),
+  browser: await browser(), vista: await vista() };
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(JSON.stringify(out, null, 1));
