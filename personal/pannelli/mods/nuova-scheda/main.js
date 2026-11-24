@@ -70,7 +70,7 @@ export default class NuovaScheda extends View {
     const elenco = shared(ELENCO) ?? [];
     const terminale = elenco.find(s => s.id === "terminale");
     const profili = elenco.filter(s => s.id !== "terminale");
-    return v_flex().min_h(0).w_full().bg(t.popover).p(5).text_size(12.8)
+    return v_flex().min_h(0).size_full().bg(t.popover).p(5).text_size(12.8)
       .id("nuova-scheda").track_focus(this.handle)
       .on_key_down((e) => {
         if (e.modifiers.control || e.modifiers.platform || e.modifiers.alt) return;
@@ -81,7 +81,8 @@ export default class NuovaScheda extends View {
       })
       .when(Boolean(terminale), el => el.child(this.row("terminale", svg("icons/shell.svg").size(14), terminale.nome, () => apri(terminale), shortcut("pannelli.scheda-terminale"))))
       .child(div().px(9).pt(8).pb(4).text_size(11).text_color(t.dim).child("Start an agent"))
-      .children(profili.map((s, i) => this.row(s.id, this.icona(s.programma), s.nome, () => apri(s), i < 9 ? String(i + 1) : "")))
+      .child(v_flex().flex_1().min_h(0).overflow_y_scrollbar()
+        .children(profili.map((s, i) => this.row(s.id, this.icona(s.programma), s.nome, () => apri(s), i < 9 ? String(i + 1) : ""))))
       .when(elenco.length === 0, el => el.child(div().px(9).py(6).text_color(t.dim).child("The pannelli mod is not running: no choices")))
       .child(div().h(1).mx(4).my(5).bg(t.border))
       .child(this.row("space", div().w(14).child("+"), "New space", () => run("space.new"), shortcut("space.new")))

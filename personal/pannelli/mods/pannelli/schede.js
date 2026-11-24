@@ -62,10 +62,13 @@ export async function apriScheda(s, h) {
     return null;
   }
   const visti = new Set(h.panes().map((p) => p.pane));
-  // The one pane that was not there before, once it appears.
-  const nuovo = async (passo) => {
+  const schede = new Set(h.panes().map((p) => p.tab));
+  // The one pane that was not there before, once it appears: for tab.new in a tab
+  // that was not there either, for a split in our tab. A pane another action makes
+  // elsewhere meanwhile is not ours.
+  const nuovo = async (passo, dove) => {
     for (let t = 0; t <= ATTESA_MS; t += PASSO_MS) {
-      const nuovi = h.panes().filter((p) => !visti.has(p.pane));
+      const nuovi = h.panes().filter((p) => !visti.has(p.pane) && (dove ? p.tab === dove : !schede.has(p.tab)));
       if (nuovi.length === 1) {
         visti.add(nuovi[0].pane);
         return nuovi[0];
@@ -83,10 +86,9 @@ export async function apriScheda(s, h) {
   const centro = await nuovo("tab.new");
 
   h.run("pane.split", { direction: "right", pane: centro.pane, argv: PIOGGIA });
-  const destra = await nuovo("right pane");
+  const destra = await nuovo("right pane", centro.tab);
   h.run("pane.split", { direction: "right", pane: centro.pane, argv: PIOGGIA });
-  const sinistra = await nuovo("left pane");
-  if (destra.tab !== centro.tab || sinistra.tab !== centro.tab) throw new Error("the panes are not in one tab");
+  const sinistra = await nuovo("left pane", centro.tab);
   h.run("pane.swap", { pane: centro.pane, target: sinistra.pane });
 
   // pane.resize measures the shown tab on screen. If the user went to another tab
