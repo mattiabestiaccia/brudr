@@ -130,8 +130,10 @@ for (const s of SCHEDE) {
 
 test("the menu's choices: Terminal and the five profiles, no OpenCode or Cursor", () => {
   assert.deepEqual(SCHEDE.map((s) => s.nome), ["Terminal", "CCB", "PIB", "GPB", "CCF", "PIF"]);
-  assert.deepEqual(SCHEDE.find((s) => s.id === "ccb").argv, ["ccb", "--here"]);
-  assert.deepEqual(SCHEDE.find((s) => s.id === "ccf").argv, ["ccf"]);
+  // The profiles start as from a terminal: no --here or --cwd, the launcher picks its role folder.
+  for (const id of ["ccb", "pib", "gpb", "ccf", "pif"]) {
+    assert.deepEqual(SCHEDE.find((s) => s.id === id).argv, [id]);
+  }
 });
 
 test("schedaDi reads only scheda-<known id>", () => {

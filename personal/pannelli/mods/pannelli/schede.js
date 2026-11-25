@@ -29,10 +29,12 @@ export const PIOGGIA = [FISH, "-lic", "command $argv[2..]; exec $argv[1] -li", F
 /** What a new tab can hold in the middle. `programma`: the key of Herdr's program table, for the icon. */
 export const SCHEDE = [
   { id: "terminale", nome: "Terminal", argv: null, programma: "shell" },
-  { id: "ccb", nome: "CCB", argv: ["ccb", "--here"], programma: "claude" },
-  { id: "pib", nome: "PIB", argv: ["pib", "--here"], programma: "pi" },
-  { id: "gpb", nome: "GPB", argv: ["gpb", "--here"], programma: "codex" },
-  // Some launchers start in their own home: they have no --here.
+  // Each profile runs as the user types it in a terminal, with no options: the launcher
+  // picks its own role folder,
+  // whatever the folder of the tab that was open (25 November 2026).
+  { id: "ccb", nome: "CCB", argv: ["ccb"], programma: "claude" },
+  { id: "pib", nome: "PIB", argv: ["pib"], programma: "pi" },
+  { id: "gpb", nome: "GPB", argv: ["gpb"], programma: "codex" },
   { id: "ccf", nome: "CCF", argv: ["ccf"], programma: "claude" },
   { id: "pif", nome: "PIF", argv: ["pif"], programma: "pi" },
 ];
