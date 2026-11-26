@@ -153,7 +153,7 @@ Questo recupero dal vivo e la persistenza vanno ancora provati nell'app.
 Un JSON invalido all'avvio segue il fallback upstream.
 
 Il pannello con slider e selettore è la seconda fase, subordinata alla prova
-di Mattia. Le misure CPU/rendering rispetto alla baseline non sono state eseguite.
+dell'utente. Le misure CPU/rendering rispetto alla baseline non sono state eseguite.
 La build dimostrativa usa il profilo dev e dipendenze con opt-level 0, come
 nei controlli CI: non è una build per misurare le prestazioni finali.
 
