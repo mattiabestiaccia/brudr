@@ -29,9 +29,11 @@ TRASPARENTE = os.path.join(REPO, "personal", "transparency", "herdr-transparent.
 SEGRETO = "FINTO_TOKEN_0000_non_vero"
 PRIVATI = {"spf", "nvim", "privato"}
 TIPI = ["spf", "nvim", "hunk", "quota", "tasti", "privato"]
-BOTTONI = ["files", "neovim", "changes", "quota", "tasti", "privato", "browser"]
-# The blocks of the stack: Superfile's Nushell view (no button) just before Superfile.
-FIGLI = ["spf-vista", *BOTTONI]
+BOTTONI = ["files", "neovim", "changes", "revisioni", "quota", "tasti", "privato", "browser"]
+# The blocks of the stack: each view (no button) just before its panel: Superfile's Nushell
+# view, and the web view of the reviews (V1 prototype, the review's Lavish session).
+FIGLI = ["spf-vista", "files", "neovim", "changes", "revisioni-web", "revisioni", "quota", "tasti", "privato", "browser"]
+SENZA_TERMINALE = {"browser", "revisioni", "revisioni-web"}
 WEB = {"web": {"url": "https://www.google.com/"}}
 
 
@@ -312,7 +314,9 @@ class Layout(unittest.TestCase):
         figli = {c["id"]: c for c in body["children"]}
         self.assertEqual(list(figli), FIGLI)
         self.assertEqual(figli["browser"]["content"], WEB)
-        self.assertEqual({k: v["content"]["terminal"] for k, v in figli.items() if k != "browser"},
+        self.assertEqual(figli["revisioni"]["content"], {"mod": "revisioni"})
+        self.assertEqual(figli["revisioni-web"]["content"], {"web": {"url": "http://127.0.0.1:4388/"}})
+        self.assertEqual({k: v["content"]["terminal"] for k, v in figli.items() if k not in SENZA_TERMINALE},
                          {"spf-vista": "brudr-spf-vista", "files": "brudr-spf", "neovim": "brudr-nvim", "changes": "brudr-hunk",
                           "quota": "brudr-quota", "tasti": "brudr-tasti", "privato": "brudr-privato"})
         self.assertEqual([k for k, v in figli.items() if "background" in v], [], "Private has the panel's gray too")
@@ -449,7 +453,7 @@ class ModPannelli(unittest.TestCase):
 
     def test_stessi_pannelli_della_mod_del_layout_e_del_programma(self):
         mod = re.findall(r'\{ child: "(\w+)", tipo: "(\w+)", nome: "[^"]+", privato: (true|false)', self.blocchi)
-        self.assertEqual([(c, t) for c, t, _ in mod], list(zip(BOTTONI, [*TIPI, "web"])))
+        self.assertEqual([(c, t) for c, t, _ in mod], list(zip(BOTTONI, ["spf", "nvim", "hunk", "revisioni", "quota", "tasti", "privato", "web"])))
         self.assertEqual({t for _, t, p in mod if p == "true"}, PRIVATI)
         programma = open(PANNELLO).read()
         self.assertIn("spf|nvim|privato) privato=1", programma)
@@ -547,6 +551,16 @@ class ModPannelli(unittest.TestCase):
         self.assertEqual(browser["chiamatePrimaDiNeovim"], 0, "browser needs no core")
         self.assertTrue(all("brudr-web" not in args for args in browser["chiamate"]))
         self.assertEqual(browser["ritorno"]["falliti"], [])
+        rev = esiti["revisioni"]
+        riga = lambda k: (rev[k]["attivo"], rev[k]["visibile"], rev[k]["pannello"])
+        self.assertEqual(riga("aperto"), ("revisioni", True, "revisioni"))
+        self.assertEqual(riga("web"), ("revisioni-web", True, "revisioni"), "the web view counts as the Revisioni panel")
+        self.assertFalse(rev["nascosto"]["visibile"])
+        self.assertEqual(riga("ritorno"), ("revisioni", True, "revisioni"), "the button shows the mod, not the web view")
+        self.assertEqual(rev["chiamate"], [], "the reviews need no core terminal")
+        self.assertEqual(rev["memorizzato"], {"sp1": "revisioni"})
+        for k in ("aperto", "web", "nascosto", "ritorno"):
+            self.assertEqual((rev[k]["falliti"], rev[k]["avvisi"], rev[k]["blocchi"]), ([], [], FIGLI), k)
 
     @unittest.skipUnless(shutil.which("node"), "node not installed")
     def test_vista_di_superfile_al_posto_del_pannello(self):
@@ -587,7 +601,7 @@ class ModPannelli(unittest.TestCase):
                  % json.dumps(pathlib_url(BLOCCHI)),
                  json.dumps({"id": "panel-body", "type": "stack", "children": [
                      {"id": "files", "type": "block", "content": {"terminal": "brudr-spf"}}]}))
-        self.assertEqual(v["v"], [{"child": a["VISTA"], "tipo": a["VISTA"], "nome": "Superfile", "privato": True,
+        self.assertEqual(v["v"][:1], [{"child": a["VISTA"], "tipo": a["VISTA"], "nome": "Superfile", "privato": True,
                                    "di": a["PANNELLO"]}])
         self.assertEqual((v["nome"], v["STACK"], a["SPF"], a["PANEL"], a["PRIVATE"]),
                          (a["NOME_VISTA"], a["STACK"], "brudr-spf", "brudr.panel", "brudr.private"))

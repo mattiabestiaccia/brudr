@@ -1,0 +1,780 @@
+{
+ "actions": {
+  "view": "66f875c7943d9a2d775264321ab00982",
+  "primary": [
+   {
+    "operation": "unisci",
+    "label": "Unisci (squash)",
+    "confirm": "Unisce in `master` come un commit solo (squash) e cancella il ramo `fm/postit-aiuto-h`. Prima ricontrollo testa, base, CI e richieste di modifiche. Prima del merge: nessuna revisione del gate: leggi il diff.",
+    "icon": "unisci"
+   }
+  ],
+  "menu": [
+   {
+    "operation": "bozza",
+    "label": "Riporta in bozza",
+    "confirm": "La PR torna in bozza: nessuno la unisce finché non è di nuovo pronta.",
+    "hint": "ferma il merge"
+   },
+   {
+    "operation": "aggiorna",
+    "label": "Aggiorna il ramo",
+    "confirm": "Porta nel ramo `fm/postit-aiuto-h` le novità arrivate in `master`.",
+    "hint": "novità di master"
+   },
+   {
+    "operation": "chiudi",
+    "label": "Chiudi la PR",
+    "confirm": "Chiude la PR senza unirla. Si può riaprire.",
+    "hint": "senza unirla",
+    "danger": true,
+    "icon": "chiudi"
+   }
+  ],
+  "fixed": [
+   {
+    "operation": "revisore",
+    "label": "Assegna un revisore",
+    "field": "line",
+    "required": true,
+    "placeholder": "Login GitHub, per esempio gao318",
+    "confirm": "Chiede la revisione della PR a una persona. Scrivi il suo login GitHub, poi Conferma.",
+    "icon": "revisore"
+   }
+  ]
+ },
+ "id": "revisione:mattiabestiaccia/postit#6",
+ "theme": "revisione",
+ "tabs": "tree",
+ "title": "feat: fa stampare l'aiuto anche a -h #6",
+ "header": {
+  "state": "aperta",
+  "facts": [
+   {
+    "label": "PR",
+    "text": "#6",
+    "type": "link",
+    "href": "https://github.com/mattiabestiaccia/postit/pull/6"
+   },
+   {
+    "label": "Repository",
+    "text": "`mattiabestiaccia/postit`"
+   },
+   {
+    "label": "Aperta da",
+    "text": "gao318"
+   },
+   {
+    "label": "Quando",
+    "text": "18 nov 2026, 13:27"
+   },
+   {
+    "label": "Head",
+    "text": "`aaaaaaa`"
+   },
+   {
+    "label": "Unisce",
+    "text": "`fm/postit-aiuto-h` → `master`"
+   },
+   {
+    "label": "Modifiche",
+    "text": "1 commit · 2 file",
+    "type": "delta",
+    "added": 12,
+    "removed": 1
+   }
+  ],
+  "notice": "L'esecutore delle operazioni non risponde: i clic restano in coda finché non riparte."
+ },
+ "guide": "Usa le schede per esaminare la PR. Le operazioni sulla PR stanno in testata e nelle carte; le note Lavish restano all’agente.",
+ "pills": [],
+ "sections": [
+  {
+   "id": "sintesi",
+   "title": "Sintesi",
+   "cards": [
+    {
+     "id": "carta-sintesi-1",
+     "title": "Senza no-mistakes",
+     "tone": "arancione",
+     "help": "Questa PR non è passata da no-mistakes: la pagina dice che cosa manca invece di inventarlo.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Questa PR **non è passata dal gate**.",
+      "Mancano: i rilievi di un revisore del gate, le prove dal vivo, i tempi dei passi, la valutazione del rischio del gate.",
+      "Dove manca un dato la pagina lo dice: non lo inventa. Le carte qui sotto le scrive l'agente che presenta la PR."
+     ]
+    },
+    {
+     "id": "carta-sintesi-2",
+     "title": "In una frase",
+     "tone": "blu",
+     "help": "La PR in una o due frasi: lo stato, l'effetto e le **due cose da guardare**. Se ti basta, il resto è conferma.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Scritto dall'agente per la prova del pannello."
+     ]
+    },
+    {
+     "id": "carta-sintesi-3",
+     "title": "Cosa cambia",
+     "tone": "blu",
+     "help": "Il cambio in una tabella **prima/dopo**: leggila per prima. Se una riga ti sorprende, la PR fa più (o meno) di quanto chiedeva il compito: controllalo nella pagina *File modificati*.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "table": {
+      "rows": [
+       [
+        "Scritto dall'agente per la prova del pannello.",
+        "",
+        ""
+       ]
+      ],
+      "headers": [
+       "Dove",
+       "Prima",
+       "Dopo"
+      ]
+     }
+    },
+    {
+     "id": "carta-sintesi-4",
+     "title": "Perché",
+     "tone": "blu",
+     "help": "Il compito che ha lanciato il lavoro. Confrontalo con *Cosa fa*: la PR deve fare ==questo e solo questo==.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Lancia un lavoro piccolo su Postit che passi dal gate no-mistakes: serve come prova.",
+      "Il lavoro scelto: la convenzione comune è che `-h` mostri l'aiuto."
+     ],
+     "notes": [
+      "Dalla descrizione della PR: non c'è un intent del gate."
+     ]
+    },
+    {
+     "id": "carta-sintesi-5",
+     "title": "Il fatto che la rende sicura",
+     "tone": "blu",
+     "help": "Il **fatto** su cui poggia la sicurezza della modifica, come è stato provato e a che ==gradino della prova== è arrivato (scala da 1 a 5). Un gradino basso vuol dire: la sicurezza è un'ipotesi.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "table": {
+      "rows": [
+       [
+        "Il fatto",
+        "Scritto dall'agente per la prova del pannello."
+       ],
+       [
+        "Come è stato provato",
+        "Scritto dall'agente per la prova del pannello."
+       ],
+       [
+        "Gradino della prova",
+        "Scritto dall'agente per la prova del pannello."
+       ],
+       [
+        "Per il gradino dopo",
+        "Scritto dall'agente per la prova del pannello."
+       ]
+      ]
+     }
+    },
+    {
+     "id": "carta-sintesi-6",
+     "title": "Rischi",
+     "tone": "blu",
+     "help": "Livello e rischi sono una **stima dell'agente**, non il giudizio del gate: la PR non è passata da no-mistakes.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Scritto dall'agente per la prova del pannello."
+     ],
+     "notes": [
+      "Livello e rischi sono una **stima dell'agente**: non è il giudizio del gate."
+     ],
+     "labels": [
+      {
+       "text": "basso",
+       "tone": "blu"
+      }
+     ],
+     "table": {
+      "rows": [
+       [
+        "Scritto dall'agente per la prova del pannello.",
+        "",
+        "",
+        ""
+       ]
+      ],
+      "headers": [
+       "Rischio",
+       "Probabilità",
+       "Costo",
+       "Controllo più economico"
+      ]
+     }
+    },
+    {
+     "id": "carta-sintesi-7",
+     "title": "Che cosa resta fuori",
+     "tone": "blu",
+     "help": "Ciò che la PR ==non== tocca, detto apposta: non cercare nel diff ciò che non c'è.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Scritto dall'agente per la prova del pannello."
+     ]
+    },
+    {
+     "id": "carta-sintesi-8",
+     "title": "Verifiche fatte e non fatte",
+     "tone": "blu",
+     "help": "Ciò che è stato provato davvero e, in arancione, ciò che **nessuno ha provato**. Una riga arancione è un rischio residuo: decidi se basta.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "table": {
+      "rows": [
+       [
+        "Scritto dall'agente per la prova del pannello.",
+        ""
+       ],
+       [
+        "Scritto dall'agente per la prova del pannello.",
+        {
+         "text": "Non fatto",
+         "tone": "arancione"
+        }
+       ]
+      ],
+      "headers": [
+       "Verifica",
+       "Esito"
+      ]
+     }
+    },
+    {
+     "id": "carta-sintesi-9",
+     "title": "Prove a schermo",
+     "tone": "arancione",
+     "help": "Le catture fatte nella VM mentre si provava la modifica, una per cosa provata. Sono la riprova che la PR funziona; toccane una per vederla grande.",
+     "paragraphs": [
+      "Nessuna cattura: la PR non porta prove a schermo fatte nella VM."
+     ]
+    },
+    {
+     "id": "carta-sintesi-10",
+     "title": "Prima di unire",
+     "tone": "decidi",
+     "requires_response": true,
+     "help": "Che cosa blocca l'unione e che cosa controllare prima del clic su «Unisci» in testata. **Ordine e installazioni**: le altre PR aperte che toccano gli stessi file e che cosa va unito, installato o lanciato prima e dopo. Dopo l'unione o la chiusura l'esito sta nello stato della testata.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Scritto dall'agente per la prova del pannello."
+     ],
+     "fields": [
+      {
+       "label": "Altre PR aperte sugli stessi file",
+       "paragraphs": [
+        "Nessun'altra PR aperta di `mattiabestiaccia/postit` tocca gli stessi file."
+       ]
+      },
+      {
+       "label": "Ordine e installazioni",
+       "paragraphs": [
+        "Scritto dall'agente per la prova del pannello."
+       ]
+      }
+     ],
+     "table": {
+      "rows": [
+       [
+        "nessuna revisione del gate: leggi il diff"
+       ]
+      ],
+      "headers": [
+       "Che cosa blocca l'unione"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "passi",
+   "title": "Al posto del gate",
+   "cards": [
+    {
+     "id": "carta-passi-1",
+     "title": "Che cosa c'è al posto del gate",
+     "tone": "blu",
+     "help": "I nove passi del gate e chi ha fatto che cosa al loro posto. Le righe **non fatte** sono in arancione: lì nessuno ha controllato.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "notes": [
+      "Push, PR e CI vengono da GitHub; le altre righe le dichiara l'agente che presenta la PR."
+     ],
+     "table": {
+      "rows": [
+       [
+        "Intent",
+        "nella descrizione della PR",
+        {
+         "text": "Dichiarato",
+         "tone": "blu"
+        }
+       ],
+       [
+        "Rebase",
+        "Scritto dall'agente per la prova del pannello.",
+        {
+         "text": "Dichiarato",
+         "tone": "blu"
+        }
+       ],
+       [
+        "Revisione",
+        "Scritto dall'agente per la prova del pannello.",
+        {
+         "text": "Dichiarato",
+         "tone": "blu"
+        }
+       ],
+       [
+        "Prove",
+        "Scritto dall'agente per la prova del pannello.",
+        {
+         "text": "Dichiarato",
+         "tone": "blu"
+        }
+       ],
+       [
+        "Documenti",
+        "Scritto dall'agente per la prova del pannello.",
+        {
+         "text": "Dichiarato",
+         "tone": "blu"
+        }
+       ],
+       [
+        "Lint",
+        "Scritto dall'agente per la prova del pannello.",
+        {
+         "text": "Dichiarato",
+         "tone": "blu"
+        }
+       ],
+       [
+        "Push",
+        "ramo `fm/postit-aiuto-h` su GitHub",
+        {
+         "text": "Fatto",
+         "tone": "verde"
+        }
+       ],
+       [
+        "PR",
+        "aperta da gao318",
+        {
+         "text": "Fatto",
+         "tone": "verde"
+        }
+       ],
+       [
+        "CI",
+        "nessuna CI su GitHub",
+        {
+         "text": "Nessuna",
+         "tone": "arancione"
+        }
+       ]
+      ],
+      "headers": [
+       "Passo",
+       "Chi l'ha fatto",
+       "Esito"
+      ]
+     }
+    }
+   ],
+   "group": "verifiche"
+  },
+  {
+   "id": "revisione",
+   "title": "Revisione",
+   "cards": [
+    {
+     "id": "carta-revisione-1",
+     "title": "Revisione fuori dal gate",
+     "tone": "blu",
+     "help": "La revisione fatta fuori dal gate, se c'è: chi ha rivisto, su quale commit, che cosa ha trovato.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "table": {
+      "rows": [
+       [
+        "Chi ha rivisto",
+        "Scritto dall'agente per la prova del pannello."
+       ],
+       [
+        "Su quale commit",
+        "Scritto dall'agente per la prova del pannello."
+       ],
+       [
+        "Rilievi",
+        "Scritto dall'agente per la prova del pannello."
+       ]
+      ]
+     }
+    },
+    {
+     "id": "operazione-revisione",
+     "title": "La tua revisione",
+     "help": [
+      "La tua revisione su GitHub, sulla testa che vedi in testata. Scegli un esito, scrivi il testo, poi **Invia la revisione**.",
+      "**Approva**: approva la PR; il testo non è obbligatorio. **Chiedi modifiche**: serve il motivo; la richiesta blocca l'unione finché non la togli. **Solo commento**: una revisione senza esito; serve il testo.",
+      "Unire resta un clic in testata."
+     ],
+     "action": {
+      "submit": "Invia la revisione",
+      "placeholder": "Il motivo, o il commento della revisione",
+      "choices": [
+       {
+        "operation": "approva",
+        "label": "Approva"
+       },
+       {
+        "operation": "modifiche",
+        "label": "Chiedi modifiche",
+        "required": true
+       },
+       {
+        "operation": "commento",
+        "label": "Solo commento",
+        "required": true
+       }
+      ]
+     }
+    }
+   ],
+   "group": "verifiche",
+   "dot": "giallo"
+  },
+  {
+   "id": "prove",
+   "title": "Prove",
+   "cards": [
+    {
+     "id": "carta-prove-1",
+     "title": "Prove dichiarate",
+     "tone": "blu",
+     "help": "Le prove che la PR o l'agente dichiarano di aver fatto. Non vengono da un'esecuzione del gate.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "notes": [
+      "Viene dalla PR e dall'agente, non da un'esecuzione del gate."
+     ],
+     "table": {
+      "rows": [
+       [
+        "Scritto dall'agente per la prova del pannello.",
+        "",
+        ""
+       ]
+      ],
+      "headers": [
+       "Che cosa",
+       "Comando",
+       "Esito"
+      ]
+     }
+    },
+    {
+     "id": "carta-prove-2",
+     "title": "Catture",
+     "tone": "arancione",
+     "help": "Le catture fatte nella VM mentre si provava la modifica, una per cosa provata. Sono la riprova che la PR funziona; toccane una per vederla grande.",
+     "paragraphs": [
+      "Nessuna cattura: la PR non porta prove a schermo fatte nella VM."
+     ]
+    }
+   ],
+   "group": "verifiche",
+   "dot": "giallo"
+  },
+  {
+   "id": "ci",
+   "title": "CI",
+   "cards": [
+    {
+     "id": "carta-ci-1",
+     "title": "Controlli",
+     "tone": "arancione",
+     "help": "I controlli automatici del repository su GitHub. Un controllo rosso va capito prima del merge.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Nessun controllo di GitHub registrato per questa PR."
+     ]
+    }
+   ],
+   "group": "verifiche",
+   "dot": "vuoto"
+  },
+  {
+   "id": "file",
+   "title": "File modificati",
+   "count": 2,
+   "cards": [
+    {
+     "id": "carta-diff",
+     "title": "File modificati",
+     "help": "Apri o chiudi il diff di un file toccando il suo nome.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "diff": {
+      "text": "diff --git a/src/cli.ts b/src/cli.ts\nindex f3f83a0..5727cec 100644\n--- a/src/cli.ts\n+++ b/src/cli.ts\n@@ -43,7 +43,7 @@ try {\n         ? Object.fromEntries([\"stato\", \"motivo\"].map(n => [n, flag(`--${n}`, \"\") || undefined]))\n         : {};\n   const [cmd = \"help\", ...rest] = args;\n-  if (cmd === \"help\" || cmd === \"--help\") console.log(aiuto);\n+  if (cmd === \"help\" || cmd === \"--help\" || cmd === \"-h\") console.log(aiuto);\n   else if (cmd === \"cura\" || cmd === \"giro\") throw new Error(\"Rimandato: la cura con Jev aspetta l'intermediario per le chiavi (plancia#7)\");\n   else if (cmd === \"list\" && rest.length === 0) console.log(JSON.stringify(consulta(dati).voci, null, 2));\n   else if (cmd === \"temi\" && rest.length === 0) {\ndiff --git a/tests/cli.test.ts b/tests/cli.test.ts\nindex 1ea2a14..92db760 100644\n--- a/tests/cli.test.ts\n+++ b/tests/cli.test.ts\n@@ -156,3 +156,14 @@ test(\"chiudi registra superata o scartata con motivo e rifiuta i casi non validi\n     void d;\n   } finally { rmSync(dir, { recursive: true }); }\n });\n+test(\"-h stampa lo stesso aiuto di --help, con codice 0\", () => {\n+  const dir = mkdtempSync(join(tmpdir(), \"postit-aiuto-test-\"));\n+  const run = (...args: string[]) => Bun.spawnSync([process.execPath, cli, ...args, \"--dati\", dir], { env: { ...process.env }, stdout: \"pipe\", stderr: \"pipe\" });\n+  try {\n+    const lungo = run(\"--help\");\n+    const corto = run(\"-h\");\n+    expect(corto.exitCode).toBe(0);\n+    expect(corto.stdout.toString()).toBe(lungo.stdout.toString());\n+    expect(corto.stdout.toString()).toContain(\"postit — archivio locale\");\n+  } finally { rmSync(dir, { recursive: true }); }\n+});\n",
+      "notes": {}
+     }
+    }
+   ],
+   "group": "modifiche"
+  },
+  {
+   "id": "commit",
+   "title": "Commit",
+   "count": 1,
+   "cards": [
+    {
+     "id": "carta-commit-1",
+     "title": "Commit",
+     "tone": "blu",
+     "help": "I commit della PR. Un commit per ogni idea rende la PR facile da rivedere e da annullare.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "table": {
+      "rows": [
+       [
+        "`256a896`",
+        "feat: fa stampare l'aiuto anche a -h",
+        "—",
+        "18 nov 2026, 13:23"
+       ]
+      ],
+      "headers": [
+       "Commit",
+       "Messaggio",
+       "Autore",
+       "Data e ora"
+      ]
+     }
+    },
+    {
+     "id": "carta-commit-2",
+     "title": "Entrato dopo la revisione",
+     "tone": "arancione",
+     "help": "I commit arrivati **dopo** l'ultima revisione: nessun revisore li ha visti.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Nessuna revisione registrata con il suo commit: nessun commit risulta rivisto."
+     ]
+    }
+   ],
+   "group": "modifiche"
+  },
+  {
+   "id": "conversazione",
+   "title": "Conversazione",
+   "cards": [
+    {
+     "id": "carta-conversazione-1",
+     "title": "Commenti e revisioni",
+     "tone": "blu",
+     "help": "Commenti e revisioni lasciati su GitHub, in ordine di tempo. Una richiesta di modifiche aperta blocca l'unione.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "paragraphs": [
+      "Nessun commento né revisione su GitHub."
+     ]
+    },
+    {
+     "id": "operazione-commento",
+     "title": "Aggiungi un commento",
+     "help": "Pubblica un commento nella conversazione della PR.",
+     "action": {
+      "operation": "commento",
+      "field": "text",
+      "submit": "Pubblica il commento",
+      "required": true,
+      "placeholder": "Il commento va sulla PR così come lo scrivi"
+     }
+    }
+   ],
+   "group": "storia"
+  },
+  {
+   "id": "cronologia",
+   "title": "Cronologia",
+   "cards": [
+    {
+     "id": "carta-cronologia-1",
+     "title": "Cronologia",
+     "tone": "blu",
+     "help": "La storia della PR in ordine di tempo: chi ha fatto cosa e quando. Serve a vedere giri di correzione, attese lunghe o passi saltati.",
+     "summary": "Scritto dall'agente per la prova del pannello.",
+     "voice": "Scritto dall'agente per la prova del pannello.",
+     "events": [
+      {
+       "text": "**gao318** apre la PR · 18 nov 2026, 13:27",
+       "tone": "blu"
+      }
+     ]
+    }
+   ],
+   "group": "storia"
+  },
+  {
+   "id": "diagnostica",
+   "title": "Diagnostica",
+   "cards": [
+    {
+     "id": "carta-diagnostica-1",
+     "title": "Stato dell'esecutore",
+     "tone": "rosso",
+     "status": "blocked",
+     "help": "L'**esecutore** è il servizio del Mac (`pr-revisione-esecutore`) che fa davvero le operazioni dei tuoi clic su GitHub (unire, commentare, chiudere…), con un suo token e con i controlli di sicurezza, al posto dell'agente. Questa carta dice se è acceso, da quando, con quale versione e se ha il token di questo repository. Spento: i clic aspettano finché non riparte.",
+     "notes": [
+      "I clic restano in coda in Lavish finché l'esecutore non riparte; quelli più vecchi di 30 minuti verranno rifiutati. Stato: `pr-revisione-esecutore stato`."
+     ],
+     "table": {
+      "rows": [
+       [
+        "Esecutore",
+        {
+         "text": "Spento o fermo",
+         "tone": "rosso"
+        }
+       ],
+       [
+        "Acceso da",
+        "—"
+       ],
+       [
+        "Versione",
+        "—"
+       ],
+       [
+        "Ultimo giro",
+        "—"
+       ]
+      ]
+     }
+    },
+    {
+     "id": "carta-diagnostica-2",
+     "title": "Questa vista",
+     "tone": "blu",
+     "help": "L'**impronta** di questa pagina: l'esecutore accetta un clic solo se arriva da qui, entro la scadenza e una volta sola. Dice anche su quale testa e base è stata fatta la pagina e quali operazioni offre.",
+     "table": {
+      "rows": [
+       [
+        "Impronta",
+        "`66f875c7`"
+       ],
+       [
+        "Generata",
+        "25 nov, 23:00"
+       ],
+       [
+        "Scade",
+        "25 nov, 23:30"
+       ],
+       [
+        "Testa vista",
+        "`aaaaaaa`"
+       ],
+       [
+        "Base vista",
+        "`master` `ddddddd`"
+       ],
+       [
+        "Generata da",
+        "agente"
+       ],
+       [
+        "Operazioni offerte",
+        "`aggiorna` · `approva` · `bozza` · `chiudi` · `commento` · `commento-riga` · `modifiche` · `revisore` · `unisci`"
+       ]
+      ]
+     }
+    },
+    {
+     "id": "carta-diagnostica-3",
+     "title": "Tentativi",
+     "tone": "blu",
+     "help": "Ciò che l'esecutore ha fatto con i tuoi clic, scritto dall'esecutore e non dall'agente. Un tentativo **Rifiutato** non ha toccato GitHub; **Incerto** vuol dire: controlla a mano prima di rifare il clic.",
+     "paragraphs": [
+      "Nessun tentativo per questa PR."
+     ]
+    }
+   ],
+   "group": "storia"
+  }
+ ],
+ "state": {
+  "revision": 1,
+  "answers": {},
+  "comments": []
+ },
+ "groups": [
+  {
+   "id": "verifiche",
+   "title": "Verifiche",
+   "dot": "giallo"
+  },
+  {
+   "id": "modifiche",
+   "title": "Modifiche",
+   "count": "2"
+  },
+  {
+   "id": "storia",
+   "title": "Storia"
+  }
+ ],
+ "diagnostics": {
+  "executor": {
+   "running": false,
+   "since": null,
+   "version": null,
+   "last_round": null
+  },
+  "view": {
+   "id_vista": "66f875c7943d9a2d775264321ab00982",
+   "generata": 1795644053.3387032,
+   "scade": 1795645853.3387032,
+   "testa": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "base": "master",
+   "base_sha": "dddddddddddddddddddddddddddddddddddddddd",
+   "offerte": [
+    "aggiorna",
+    "approva",
+    "bozza",
+    "chiudi",
+    "commento",
+    "commento-riga",
+    "modifiche",
+    "revisore",
+    "unisci"
+   ],
+   "da": "agente"
+  },
+  "attempts": [],
+  "total": 0,
+  "problem": null
+ }
+}

@@ -7,7 +7,9 @@ Same window as the source (look, transparency, sidebar, status), with two change
 - the right panel's stack "panel-body": six named terminal blocks, one native
   browser block, and before Superfile's block the one of its Nushell view
   (spf-vista, shown by spf-apri in Superfile's place), without a header, on the
-  panel's own gray background;
+  panel's own gray background; after Hunk the PR reviews: the mod block
+  "revisioni" and, before it, the web block "revisioni-web" of its V1 prototype
+  (the mod writes a review's Lavish session URL there);
 - the tab bar block "tabs" runs the `pannelli` mod instead of `tabs`, putting
   the side panel buttons in place of Files and Changes.
 The ids "files" and "changes" stay. The source file is only read.
@@ -33,13 +35,25 @@ def browser():
     return {"id": "browser", "type": "block", "content": {"web": {"url": "https://www.google.com/"}}}
 
 
+REVISIONI_WEB = "http://127.0.0.1:4388/"  # Lavish's start page until a review is chosen
+
+
+def revisioni():
+    """The PR reviews: the V1 web view, then the mod (same order as ORDINE in blocchi.js)."""
+    return [
+        {"id": "revisioni-web", "type": "block", "content": {"web": {"url": REVISIONI_WEB}}},
+        {"id": "revisioni", "type": "block", "content": {"mod": "revisioni"}},
+    ]
+
+
 def stack():
     terminali = [{"id": id_, "type": "block", "content": {"terminal": nome}} for id_, nome in FIGLI]
+    dopo = [i for i, (id_, _) in enumerate(FIGLI) if id_ == "changes"][0] + 1
     return {
         "id": "panel-body",
         "type": "stack",
         "active": "files",
-        "children": [*terminali, browser()],
+        "children": [*terminali[:dopo], *revisioni(), *terminali[dopo:], browser()],
     }
 
 

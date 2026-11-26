@@ -2,10 +2,11 @@
 // the side panels' terminals.
 //
 // The bar is a copy of Herdr's `tabs` mod (defaults/mods/tabs, not changed),
-// with seven panel buttons in place of Files and Changes. Like `tabs`, it remembers
-// the shown panel per space, including the native Browser.
+// with eight panel buttons in place of Files and Changes. Like `tabs`, it remembers
+// the shown panel per space, including the native Browser and the Revisioni mod.
 //
-// Browser is a regular web block with no core terminal. The other children of
+// Browser is a regular web block with no core terminal, Revisioni a mod block (mod
+// revisioni, with its web view revisioni-web): neither needs the core. The other children of
 // "panel-body" are terminal blocks by name, so a new address needs no layout change. This mod:
 // - creates a panel's terminal the first time the panel is shown (D5), and again
 //   after a restart, with `hc run --name brudr-<tipo>`; private panels carry the
@@ -27,7 +28,7 @@
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, ScrollHandle } from "gpui-base";
 import { spaces, panes, focused, terminals, layout, theme, run, hc, exec, home, appHome, readTextFile, writeTextFile, shared, notify, openOverlay, window, settings, nextCommand, setShared } from "herdr";
-import { PANNELLI, VISTE, ORDINE, STACK, nomeDi, pannelloDi, trova, ripara } from "./blocchi.js";
+import { PANNELLI, VISTE, ORDINE, STACK, nomeDi, pannelloDi, terminale, trova, ripara } from "./blocchi.js";
 import { SCHEDE, ELENCO, schedaDi, apriScheda } from "./schede.js";
 
 const PANEL = "brudr.panel", PRIVATE = "brudr.private";
@@ -123,7 +124,7 @@ export default class Pannelli extends View {
 
   // The panel's live terminal, or a new one. Resolves to true when one was created.
   async garantisci(p) {
-    if (p.web || this.creando.has(p.tipo)) return false;
+    if (!terminale(p) || this.creando.has(p.tipo)) return false;
     const presente = record(p);
     if (presente) return this.controlla(presente, p);
     this.creando.add(p.tipo);
@@ -184,7 +185,7 @@ export default class Pannelli extends View {
   // A view of the panel still open (its terminal live, labels ours), or null.
   vistaAperta(p) {
     const v = VISTE.find((x) => x.di === p.child);
-    if (!v || !this.haBlocco(v)) return null;
+    if (!v || !terminale(v) || !this.haBlocco(v)) return null;
     const rec = record(v);
     return rec && nostro(rec, v) ? v : null;
   }
@@ -229,7 +230,7 @@ export default class Pannelli extends View {
     cx.spawn(async (cx) => {
       try {
         for (const p of mancanti) {
-          if (p.web) continue;
+          if (!terminale(p)) continue;
           // A finished record of ours would keep the name and end the new block.
           const g = await hc(["get", "--json", nomeDi(p)]).catch(() => null);
           let rec = null;
@@ -280,14 +281,14 @@ export default class Pannelli extends View {
       if (p && presenti.has(p.child)) {
         this.daMostrare = null;
         cx.spawn(async (cx) => {
-          this.mostra(cx, p, !p.web);
+          this.mostra(cx, p, terminale(p));
           cx.notify();
         });
       }
     }
     // render runs on every data change: work only when the shown panel, its
     // terminal or (for hunk) the folder changes.
-    if (visibile && !attuale.web) {
+    if (visibile && terminale(attuale)) {
       const rec = record(attuale);
       const chiave = `${attuale.child}|${rec?.address ?? "-"}|${attuale.segue ? cartella() ?? "" : ""}`;
       if (chiave !== this.ultima) {

@@ -13,6 +13,8 @@ export const PANNELLI = [
   { child: "files", tipo: "spf", nome: "Superfile", privato: true },
   { child: "neovim", tipo: "nvim", nome: "Neovim", privato: true },
   { child: "changes", tipo: "hunk", nome: "Hunk", privato: false, segue: true },
+  // The PR reviews (mod revisioni, 25 November 2026): a mod block, no terminal.
+  { child: "revisioni", tipo: "revisioni", nome: "Revisioni", privato: false, mod: { mod: "revisioni" } },
   { child: "quota", tipo: "quota", nome: "Quota", privato: false },
   { child: "tasti", tipo: "tasti", nome: "Tasti", privato: false },
   { child: "privato", tipo: "privato", nome: "Private", privato: true },
@@ -27,6 +29,10 @@ export const PANNELLI = [
 // (src/layout.rs, remove_inner).
 export const VISTE = [
   { child: "spf-vista", tipo: "spf-vista", nome: "Superfile", privato: true, di: "files" },
+  // The V1 prototype of the reviews: the mod revisioni writes a review's Lavish session
+  // URL into this web block and selects it; no terminal, so never "open" under another panel.
+  { child: "revisioni-web", tipo: "revisioni-web", nome: "Revisioni", privato: false, di: "revisioni",
+    web: { url: "http://127.0.0.1:4388/" } },
 ];
 
 // Every block of the stack in its order: each view just before its panel.
@@ -36,6 +42,9 @@ export const STACK = "panel-body";
 
 export const nomeDi = (p) => `brudr-${p.tipo}`;
 
+// A block with a terminal of its own: not the web blocks, not the mod blocks.
+export const terminale = (p) => Boolean(p && !p.web && !p.mod);
+
 // The panel a shown child belongs to: itself, or the panel a view stands for.
 export function pannelloDi(child) {
   const v = VISTE.find((x) => x.child === child);
@@ -44,7 +53,7 @@ export function pannelloDi(child) {
 
 // The block as crea-layout writes it (same keys, same order).
 export function blocco(p) {
-  const content = p.web ? { web: p.web } : { terminal: nomeDi(p) };
+  const content = p.web ? { web: p.web } : p.mod ? p.mod : { terminal: nomeDi(p) };
   return { id: p.child, type: "block", content };
 }
 
