@@ -164,6 +164,56 @@ export function parole(t) {
   return out;
 }
 
+// ---- how wide a card must be to show its words whole
+
+const AVANZO = 0.62; // average advance of a character, in em: the interface font and the monospace one, a little over
+
+/** The width in px of the longest word of a text with marks at `size` (code is monospace at 0.92 of it). */
+export function paroleLarga(testo, size = 12) {
+  let max = 0;
+  for (const w of parole(testo)) {
+    const px = w.reduce((n, x) => n + [...x.testo].length * size * (x.stile === "codice" ? 0.92 : 1) * AVANZO, 0);
+    if (px > max) max = px;
+  }
+  return Math.ceil(max);
+}
+
+export const ETICHETTA = 132; // the label column of a card's fields and of a table with no headers
+
+/** What each column of a table needs for its longest word, headers included (the cell's dot too). */
+export function colonneTabella(tab) {
+  const n = (tab?.headers ?? []).length;
+  const out = [];
+  for (let j = 0; j < n; j++) {
+    let w = paroleLarga(piano(tab.headers[j]), 11);
+    for (const riga of tab.rows ?? []) {
+      const c = cella(riga?.[j]);
+      w = Math.max(w, paroleLarga(c.testo, 12) + (c.tono ? 11 : 0));
+    }
+    out.push(w);
+  }
+  return out;
+}
+
+/** The width of a table with those columns: the columns, the gaps between them, the row padding and the border. */
+export const larghezzaTabella = (colonne) => colonne.reduce((a, b) => a + b, 0) + 8 * Math.max(0, colonne.length - 1) + 14;
+
+/**
+ * The narrowest a card's body can be without breaking a word: the card draws its body at least this wide
+ * and scrolls sideways when the panel is narrower.
+ */
+export function larghezzaCarta(c) {
+  let w = 0;
+  for (const p of paragrafi(c?.paragraphs)) w = Math.max(w, paroleLarga(p, 13));
+  for (const f of c?.fields ?? []) for (const p of paragrafi(f.paragraphs)) w = Math.max(w, ETICHETTA + 10 + paroleLarga(p, 13));
+  for (const e of c?.events ?? []) w = Math.max(w, 13 + paroleLarga(e.text, 12));
+  for (const n of c?.notes ?? []) w = Math.max(w, paroleLarga(n, 11.5));
+  if (c?.table?.headers) w = Math.max(w, larghezzaTabella(colonneTabella(c.table)));
+  const righe = tabellaSenzaTesta(c?.table);
+  if (righe) for (const r of righe) w = Math.max(w, ETICHETTA + 10 + 16 + 2 + Math.max(0, ...(Array.isArray(r) ? r.slice(1) : []).map((x) => paroleLarga(cella(x).testo, 12))));
+  return Math.ceil(w);
+}
+
 /**
  * The colors of the review page (Bruvish theme «revisione»: titles cyan, bold gold, italic
  * lilac, code peach, highlight straw), for brudr's theme: on a dark theme the page's own
@@ -183,6 +233,51 @@ export function luminanza(c) {
   const [r, g, b] = [0, 2, 4].map((i) => f(parseInt(x.slice(i, i + 2), 16) / 255));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
+
+/**
+ * The semantic colors of the review page, by tone (Bruvish: blu, verde, giallo/decidi, rosso, viola, and the
+ * executor's «arancione», which Bruvish gets as yellow and recolors after the render with #ff9440): the dots
+ * of cards, tree, labels and cells, the border and the tint of a card. On a dark theme the page's own values;
+ * on a light one darker tones of the same hues. The tone «vuoto» (nothing to show) is not here: it is dim.
+ */
+export const TINTE = {
+  scuro: { blu: "#6bb5ff", verde: "#63ca84", giallo: "#e8c35a", decidi: "#e8c35a", rosso: "#fe8b83", viola: "#a371f7", arancione: "#ff9440" },
+  chiaro: { blu: "#0b5cad", verde: "#1a7f37", giallo: "#8a6a00", decidi: "#8a6a00", rosso: "#c0332b", viola: "#6f42c1", arancione: "#b85a00" },
+};
+
+/** The color of a tone for brudr's theme, or null when the tone is unknown or «vuoto». */
+export function tinta(tono, t) {
+  const tavola = paletteRevisione(t) === PALETTE.chiaro ? TINTE.chiaro : TINTE.scuro;
+  return tavola[tono] ?? null;
+}
+
+/** A #rrggbb color with an alpha 0..1, as #rrggbbaa. */
+export const conAlfa = (c, a) => `${c}${Math.round(Math.min(1, Math.max(0, a)) * 255).toString(16).padStart(2, "0")}`;
+
+/** `sopra` laid over `base` with an alpha 0..1, both #rrggbb[aa]; `base` itself when either is not a hex color. */
+export function mescola(base, sopra, a) {
+  const hex = (c) => {
+    const h = String(c ?? "").replace(/^#/, "");
+    return /^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(h) ? [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) : null;
+  };
+  const b = hex(base), o = hex(sopra);
+  if (!b || !o) return base;
+  return `#${b.map((v, i) => Math.round(v + (o[i] - v) * a).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/**
+ * The tone that colors a card, as the review page does: the state of the card wins (answered is green, blocked
+ * red, waiting yellow), then its tone, and a card with none is blue. Yellow (giallo, decidi, waiting) is the
+ * intense one: `forte`.
+ */
+export function tonoCarta(carta) {
+  const stato = { answered: "verde", blocked: "rosso", waiting: "giallo" }[carta?.status];
+  const tono = stato ?? (carta?.tone && carta.tone !== "vuoto" ? carta.tone : "blu");
+  return { tono, forte: tono === "giallo" || tono === "decidi" };
+}
+
+/** The rows of a card table that has no headers (label and value, as «Il fatto che la rende sicura»), else null. */
+export const tabellaSenzaTesta = (tab) => (Array.isArray(tab?.rows) && !Array.isArray(tab?.headers) ? tab.rows : null);
 
 /** The palette for brudr's theme: dark when the theme's text is light. */
 export function paletteRevisione(t) {

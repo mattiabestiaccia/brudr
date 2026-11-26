@@ -23,7 +23,7 @@ export function layoutIniziale() {
   return {
     id: "root", type: "row", children: [
       { id: "work", type: "column", children: [] },
-      { id: "panel", type: "column", size: { px: 368 }, min: 280, max: 900, hidden: false, children: [
+      { id: "panel", type: "column", size: { px: 368 }, min: 280, max: 4000, hidden: false, children: [
         { id: "panel-body", type: "stack", active: "revisioni", children: [
           { id: "revisioni", type: "block", content: { mod: "revisioni" } },
           { id: "revisioni-web", type: "block", content: { web: { url: "http://127.0.0.1:4388/" } } },
