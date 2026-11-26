@@ -19,7 +19,7 @@
 //   layout file (a web block has no API: a new URL recreates the view).
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, TextareaState, Textarea } from "gpui-base";
-import { exec, home, appHome, readTextFile, writeTextFile, watchFolder, layout, run, shared, theme, settings, notify } from "herdr";
+import { exec, home, appHome, readTextFile, writeTextFile, watchFolder, layout, run, shared, setShared, theme, settings, notify } from "herdr";
 import {
   STATI, coloreTono, IMMAGINE, MAX_IMMAGINI, ATTESA_S, leggiElenco, leggiPagina, albero, sezioneScelta,
   elementoCarta, paragrafi, cella, piano, operazioni, offerte, statoDopo, argomentiClic, leggiRisposta, rigaEsito,
@@ -40,10 +40,13 @@ const RIGHE_PER_FILE = 600; // a diff file longer than this: the rest is in Lavi
 const icona = (nome) => `mods/revisioni/icone/${nome}.svg`;
 const bin = (nome) => `${home()}/bin/${nome}`;
 const OPEN = "/usr/bin/open";
+// The purple dot (a PR review is not opened in Bruvish by the agent, brudr marks it): the pannelli mod works out the new reviews and publishes their names
+// in NUOVE; this mod tells it, in APERTA, which review the panel shows, so it counts as seen.
+const NUOVE = "revisioni.nuove", APERTA = "revisioni.aperta";
 
 export default class Revisioni extends View {
   init(_props, cx) {
-    this.modo = "elenco";
+    this.modo = "elenco"; this.annunci = 0;
     this.elenco = null; this.erroreElenco = null; this.caricando = false;
     this.r = null; this.pagina = null; this.testoPagina = null; this.errorePagina = null;
     this.sezione = null; this.aiuto = new Set(); this.aperti = new Set(); this.chiusi = new Set();
@@ -107,7 +110,9 @@ export default class Revisioni extends View {
     const testo = await readTextFile(file).catch(() => null);
     if (this.r !== r || testo === this.testoPagina) return;
     const p = leggiPagina(testo);
+    const prima = this.testoPagina;
     this.testoPagina = testo;
+    if (prima !== null && this.modo === "revisione") this.annuncia(); // the page redone while shown: a new head is seen too
     if (p.errore) { this.errorePagina = p.errore; return; }
     this.pagina = p.pagina; this.errorePagina = null;
     // A new view: operations come back; the page's own state wins over the answer's.
@@ -117,10 +122,16 @@ export default class Revisioni extends View {
     cx.notify();
   }
 
+  // Tells the pannelli mod which review the panel shows (it marks it seen, and the dot goes out).
+  annuncia() {
+    if (this.r?.nome) setShared(APERTA, { nome: this.r.nome, n: `${Date.now()}-${++this.annunci}` }); // n: a new value each time, so the bar sees every ask
+  }
+
   apri(r, cx) {
     this.modo = "revisione"; this.r = r; this.pagina = null; this.testoPagina = null; this.errorePagina = null;
     this.sezione = null; this.aiuto = new Set(); this.aperti = new Set(); this.chiusi = new Set();
     this.conferma = null; this.esito = null; this.statoEsito = null; this.usata = null; this.nota = null; this.menu = false;
+    this.annuncia();
     this.adegua();
     cx.spawn(async (cx) => {
       if (!r.pagina_json) this.errorePagina = "Questa revisione non ha ancora pagina.json: un agente la rifà con pr-revisione-ai genera.";
@@ -372,10 +383,12 @@ export default class Revisioni extends View {
 
   rigaElenco(r, i, righe, t) {
     const aperta = r.stato === "aperta" || r.stato === "bozza";
+    const nuova = Array.isArray(shared(NUOVE)) && shared(NUOVE).includes(r.nome);
     const separa = i > 0 && aperta !== (righe[i - 1].stato === "aperta" || righe[i - 1].stato === "bozza");
     return v_flex().when(separa, (x) => x.mt(8).pt(8).border_t(1).border_color(t.border))
       .child(h_flex().id(`rev-${r.nome}`).min_h(44).px(10).py(6).gap(10).items_center().rounded(7).cursor_pointer()
         .hover((x) => x.bg(t.hover)).on_click((_e, cx) => this.apri(r, cx))
+        .when(nuova, (x) => x.child(div().id(`nuova-${r.nome}`).size(7).rounded(4).flex_none().bg(t.ansi5).tooltip("Revisione nuova: non l'hai ancora aperta qui")))
         .child(this.badge(r.stato, t))
         .child(v_flex().flex_1().min_w(0).gap(2)
           .child(div().truncate().text_size(12.5).text_color(aperta ? t.foreground : t.muted).child(r.titolo || r.nome))

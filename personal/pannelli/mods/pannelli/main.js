@@ -27,15 +27,23 @@
 // Programs never exit on their own: brudr-pannello restarts them in a loop.
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, ScrollHandle } from "gpui-base";
-import { spaces, panes, focused, terminals, layout, theme, run, hc, exec, home, appHome, readTextFile, writeTextFile, shared, notify, openOverlay, window, settings, nextCommand, setShared } from "herdr";
+import { spaces, panes, focused, terminals, layout, theme, run, hc, exec, home, appHome, readTextFile, writeTextFile, watchFolder, shared, notify, openOverlay, window, settings, nextCommand, setShared } from "herdr";
 import { PANNELLI, VISTE, ORDINE, STACK, nomeDi, pannelloDi, terminale, trova, ripara } from "./blocchi.js";
 import { SCHEDE, ELENCO, schedaDi, apriScheda } from "./schede.js";
+import { candidata, testaDi, leggiViste, nuove, conVista, testoViste, NOME_VALIDO } from "./nuove.js";
 
 const PANEL = "brudr.panel", PRIVATE = "brudr.private";
 // Between two repairs nobody asked for: a panel whose terminal keeps ending
 // must not make the mod rewrite the layout file in a loop.
 const RIPRISTINO_MS = 10000;
 const TENTATIVI = 3; // the layout file changed under the mod: read it again
+// The purple dot of the Revisioni button (nuove.js): the reviews' list is read again every
+// POLL_MS and at once when the executor writes in its folder (the mods' shared keys are
+// the channel with the revisioni mod: NUOVE goes out, APERTA comes in).
+const POLL_MS = 30000;
+const NUOVE = "revisioni.nuove", APERTA = "revisioni.aperta";
+const CARTELLA_REVISIONI = () => `${home()}/.local/state/pr-revisione`;
+const FILE_VISTE = () => `${appHome()}/data/pannelli/revisioni-viste.json`;
 
 // The space's folder, or its focused pane's: never a layout block's own folder,
 // so a private panel's folder never reaches the hunk folder file.
@@ -70,6 +78,11 @@ export default class Pannelli extends View {
     this.daMostrare = null; // a clicked panel whose block is being put back
     this.visti = null; // every child seen in the stack
     this.cartellaHunk = null;
+    // The purple dot (nuove.js)
+    this.viste = {}; this.teste = {}; this.revisioni = []; this.nuove = null; // null: not computed yet
+    this.aggiornando = false; this.ripeti = false; this.segnando = Promise.resolve();
+    this.aperta = shared(APERTA)?.n ?? null; // what was asked before this start is not asked again
+    this.guardaRevisioni(cx);
     // tabs
     this.pressed = null;
     this.scroll = ScrollHandle.new();
@@ -89,6 +102,101 @@ export default class Pannelli extends View {
         catch (e) { notify({ title: "pannelli", body: `Nuova scheda ${s.nome}: ${e?.message ?? e}`, level: "error" }); }
       }
     });
+  }
+
+  // ---- the purple dot of Revisioni (nuove.js)
+
+  // The reviews are read again every POLL_MS and when the executor writes in its folder.
+  guardaRevisioni(cx) {
+    this.aggiorna(cx);
+    cx.timer.every(POLL_MS, (cx) => this.aggiorna(cx));
+    cx.spawn(async (cx) => {
+      for (;;) {
+        try { await watchFolder(CARTELLA_REVISIONI()); } catch { return; } // the timer goes on
+        await this.leggi();
+        cx.notify();
+      }
+    });
+  }
+
+  aggiorna(cx) {
+    cx.spawn(async (cx) => {
+      await this.leggi();
+      cx.notify();
+    });
+  }
+
+  // One read at a time; a change that comes meanwhile asks for one more.
+  async leggi() {
+    if (this.aggiornando) { this.ripeti = true; return; }
+    this.aggiornando = true;
+    try {
+      do {
+        this.ripeti = false;
+        await this.leggiUna();
+      } while (this.ripeti);
+    } finally {
+      this.aggiornando = false;
+    }
+  }
+
+  async leggiUna() {
+    let r;
+    try { r = await exec(`${home()}/bin/pr-revisione-ai`, ["elenco", "--json", "--limit", "50"], { timeout: 30000 }); } catch { return; }
+    if (!r || r.code !== 0) return; // the dot stays as it is
+    let d = null;
+    try { d = JSON.parse(r.stdout); } catch { d = null; }
+    if (!Array.isArray(d?.revisioni)) return;
+    this.viste = leggiViste(await readTextFile(FILE_VISTE()).catch(() => null)); // another window may have written
+    this.revisioni = d.revisioni;
+    // The head is read from the page only for a review seen before, when the executor
+    // has generated it again: a review never seen is new whatever its head.
+    for (const rv of d.revisioni) {
+      if (!candidata(rv) || !this.viste[rv.nome] || this.teste[rv.nome]?.generata === rv.generata) continue;
+      const testo = await readTextFile(rv.pagina_json).catch(() => null);
+      this.teste[rv.nome] = { generata: rv.generata, testa: testaDi(testo) };
+    }
+    this.pubblica();
+  }
+
+  // The new reviews go to the other mods (the list in revisioni draws the same dot).
+  pubblica() {
+    const n = nuove(this.revisioni, this.viste, this.teste);
+    if (this.nuove && n.join("\n") === this.nuove.join("\n")) return;
+    this.nuove = n;
+    setShared(NUOVE, n);
+  }
+
+  // The panel opened this review (or the executor redid the open page for a new head): seen.
+  segna(cx, nome) {
+    if (!NOME_VALIDO.test(nome)) return;
+    this.segnando = this.segnando.then(() => this.segnaUna(nome)).catch(() => null);
+    cx.spawn(async (cx) => {
+      await this.segnando;
+      cx.notify();
+    });
+  }
+
+  async segnaUna(nome) {
+    const rv = this.revisioni.find((x) => x.nome === nome);
+    const testa = testaDi(await readTextFile(rv?.pagina_json || `${CARTELLA_REVISIONI()}/${nome}/pagina.json`).catch(() => null));
+    for (let i = 1; ; i++) {
+      const prima = await readTextFile(FILE_VISTE()).catch(() => null);
+      const viste = leggiViste(prima);
+      // Same head as the last time seen: nothing to write (the executor redoes pages often).
+      if (viste[nome] && (!testa || viste[nome].testa === testa)) { this.viste = viste; break; }
+      const nuovo = conVista(viste, nome, testa, Math.floor(Date.now() / 1000));
+      try {
+        await exec("mkdir", ["-p", `${appHome()}/data/pannelli`]);
+        await writeTextFile(FILE_VISTE(), testoViste(nuovo), prima); // only over the text just read
+        this.viste = nuovo;
+        break;
+      } catch (e) {
+        if (i >= TENTATIVI) throw e;
+      }
+    }
+    if (rv) this.teste[nome] = { generata: rv.generata, testa };
+    this.pubblica();
   }
 
   // From tabs: the side panel is remembered per space: switching shows that
@@ -337,6 +445,12 @@ export default class Pannelli extends View {
   }
 
   render(cx) {
+    // The revisioni mod asks (shared) to mark a review seen: opened in the panel.
+    const apertura = shared(APERTA);
+    if (apertura && apertura.n != null && apertura.n !== this.aperta) {
+      this.aperta = apertura.n;
+      if (typeof apertura.nome === "string") this.segna(cx, apertura.nome);
+    }
     const { p: attuale, visibile } = this.custode(cx);
     const t = theme();
     const space = spaces().find(p => p.active);
@@ -379,7 +493,9 @@ export default class Pannelli extends View {
       : 10;
     const panel = trova(root, "panel"), body = trova(root, STACK);
     this.syncPanel(space, panel, body);
-    // The panel buttons, in place of Files and Changes; a dot marks the private ones.
+    // The panel buttons, in place of Files and Changes; a dot marks the private ones, and a
+    // purple one (the review page's «viola», ansi5) the new reviews on Revisioni.
+    const salvata = shared(NUOVE), daVedere = this.nuove ?? (Array.isArray(salvata) ? salvata : []);
     const pulsante = (p) => {
       const on = visibile && attuale === p;
       return h_flex().id(`pannello-${p.child}`).h(26).px(8).gap(5).flex_none().items_center().rounded(6)
@@ -387,6 +503,8 @@ export default class Pannelli extends View {
         .hover(s => s.bg(t.hover)).on_mouse_down("left", stop)
         .on_click((_e, cx) => this.premi(cx, p))
         .child(p.nome)
+        .when(p.child === "revisioni" && daVedere.length > 0, el => el.child(div().id("pallino-revisioni").size(6).rounded(3).flex_none().bg(t.ansi5)
+          .tooltip(daVedere.length === 1 ? "Una revisione nuova" : `${daVedere.length} revisioni nuove`)))
         .when(Boolean(p.privato), el => el.child(div().size(5).rounded(3).bg(on ? t.foreground : t.dim)));
     };
     const msg = attuale ? this.errori[attuale.tipo] : Object.values(this.errori)[0];
