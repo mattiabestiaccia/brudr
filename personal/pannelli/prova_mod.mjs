@@ -421,7 +421,29 @@ async function vista() {
     memorizzato: JSON.parse(MEMORIA.get("panels") ?? "{}") };
 }
 
+// Scenario: the Revisioni panel (a mod block) and its web view revisioni-web (the V1
+// prototype, selected by the revisioni mod): no core, the button stays lit on the view,
+// a click hides the panel, the next one shows the mod again.
+async function revisioni() {
+  globalThis.MEMORIA = new Map();
+  const b = new Brudr(fs.readFileSync(layoutFile, "utf8"));
+  globalThis.BRUDR = b;
+  const v = new Pannelli();
+  v.init(null, cx(b));
+  await quieto(b, v);
+  const stato = () => ({ ...esito(b), pannello: v.attivo().p?.child ?? null });
+  await clic(b, v, "revisioni");
+  const aperto = stato();
+  b.run("layout.select", { stack: "panel-body", child: "revisioni-web" });
+  await quieto(b, v);
+  const web = stato();
+  await clic(b, v, "revisioni");
+  const nascosto = stato();
+  await clic(b, v, "revisioni");
+  return { aperto, web, nascosto, ritorno: stato(), chiamate: b.chiamateCore, memorizzato: JSON.parse(MEMORIA.get("panels") ?? "{}") };
+}
+
 const out = { salvaPrima: await scenario(true), senzaSalvare: await scenario(false), fileSenzaNeovim: await fileSenzaNeovim(),
-  browser: await browser(), vista: await vista() };
+  browser: await browser(), vista: await vista(), revisioni: await revisioni() };
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(JSON.stringify(out, null, 1));

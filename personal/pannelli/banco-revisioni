@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""banco-revisioni: a review of postit-6 with a fake GitHub, for the brudr Revisioni panel.
+
+Usage: banco-revisioni <cartella-vuota> [--stato-file F] [--durata S]
+
+Without a token and without the network: in <cartella-vuota> (it becomes the HOME of the
+test) it writes a fake `gh` (GH_FINTO of agenti-comune's pr_revisione_esecutore_test.py,
+with delays equal to the medians measured on real pull requests: merge 5.4 s),
+a fake `sops`, a fake Lavish server, the review of mattiabestiaccia/postit#6 (prepara with
+the test data, texts filled in, genera), and ~/bin links to pr-revisione-ai,
+pr-revisione-clic and pr-revisione-esecutore. Then it starts the executor by hand
+(`pr-revisione-esecutore servi`, PR_REVISIONE_PROVE=1) and stays up until SIGTERM, SIGINT
+or --durata seconds (default 3600: a bench nobody stops ends by itself), when it stops the
+executor and leaves the folder for inspection.
+
+When the executor's socket is up it writes one JSON line on stdout (and in --stato-file):
+{"home", "env", "cartella", "nome", "gh_log", "socket", "lavish_porta"}. `env` is what a
+brudr started for the test needs (HOME, PATH, PR_REVISIONE_PROVE, FINTO_DIR, ...).
+
+Needs the agenti-comune checkout (AGENTI_COMUNE, default
+~/agenti-comune) and Bruvish (BRUVISH_BIN). Touches no real
+GitHub, no real Lavish, no token.
+"""
+import importlib.util
+import json
+import os
+import signal
+import shutil
+import stat
+import subprocess
+import sys
+import threading
+import time
+
+AC = os.environ.get("AGENTI_COMUNE") or os.path.expanduser("~/agenti-comune")
+TOOLS = os.path.join(AC, "tools/pr-revisione")
+DATI = os.path.join(AC, "tests/dati-pr-revisione")
+NOME = "mattiabestiaccia-postit-6"
+TESTA, BASE = "a" * 40, "d" * 40
+# Medians measured on real pull requests: seconds per gh command.
+RITARDI = {"pr view": 0.9, "pr diff": 0.6, "pr merge": 5.4, "pr close": 1.5, "pr ready": 1.2, "pr comment": 1.0}
+
+
+def modulo_prove():
+    p = os.path.join(AC, "tests/pr_revisione_esecutore_test.py")
+    spec = importlib.util.spec_from_file_location("pr_revisione_esecutore_test", p)
+    m = importlib.util.module_from_spec(spec)
+    sys.dont_write_bytecode = True
+    spec.loader.exec_module(m)
+    return m
+
+
+def scrivi(p, testo, modo=0o644):
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "w") as f:
+        f.write(testo)
+    os.chmod(p, modo)
+
+
+def riempi(x):
+    if isinstance(x, str) and x.startswith("DA_COMPLETARE:"):
+        return "basso" if "basso" in x else "Scritto dall'agente per la prova del pannello."
+    if isinstance(x, list):
+        return [riempi(e) for e in x]
+    if isinstance(x, dict):
+        return {k: riempi(v) for k, v in x.items()}
+    return x
+
+
+def prepara(home):
+    m = modulo_prove()
+    finto, binf = os.path.join(home, "finto"), os.path.join(home, "finto-bin")
+    os.makedirs(finto)
+    scrivi(os.path.join(binf, "gh"), m.GH_FINTO, 0o755)
+    scrivi(os.path.join(binf, "sops"), m.SOPS_FINTO, 0o755)
+    shutil.copy(os.path.join(DATI, "postit-6.diff"), os.path.join(finto, "pr.diff"))
+    with open(os.path.join(DATI, "postit-6.json")) as f:
+        pr = json.load(f)
+    pr.update(state="OPEN", mergedAt=None, closedAt=None, mergedBy=None, isDraft=False, reviews=[], comments=[],
+              statusCheckRollup=[], headRefOid=TESTA, baseRefOid=BASE, author={"login": "gao318"}, reviewRequests=[])
+    scrivi(os.path.join(finto, "pr.json"), json.dumps(pr))
+    scrivi(os.path.join(finto, "segreti.json"), json.dumps({"GH_TOKEN_MATTIABESTIACCIA": "tok-finto-0123456789"}))
+    scrivi(os.path.join(home, ".config/segreti/profili.conf"),
+           "pr-revisione-esecutore  ~/.config/segreti/pr-revisione-esecutore.cifrato\n")
+    scrivi(os.path.join(home, ".config/segreti/pr-revisione-esecutore.cifrato"), "")
+    for n in ("pr-revisione-ai", "pr-revisione-clic", "pr-revisione-esecutore"):
+        os.makedirs(os.path.join(home, "bin"), exist_ok=True)
+        os.symlink(os.path.join(TOOLS, n), os.path.join(home, "bin", n))
+    lavish = m.LavishFinto()
+    threading.Thread(target=lavish.serve_forever, daemon=True).start()
+    bruvish = os.environ.get("BRUVISH_BIN") or os.path.expanduser("~/tools/bruvish/current/bruvish/bin/bruvish.mjs")
+    env = {"HOME": home, "PR_REVISIONE_PROVE": "1", "FINTO_DIR": finto, "BRUVISH_BIN": bruvish,
+           "PATH": os.pathsep.join([binf, os.path.join(home, "bin"), os.environ.get("PATH", "/usr/bin:/bin")]),
+           "LAVISH_AXI_PORT": str(lavish.server_address[1]),
+           "SEGRETI_PROFILI": os.path.join(home, ".config/segreti/profili.conf")}
+    piena = dict(os.environ, **env)
+    ai = os.path.join(TOOLS, "pr-revisione-ai")
+    r = subprocess.run([sys.executable, ai, "prepara", "mattiabestiaccia/postit#6"], env=piena, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit(f"banco-revisioni: prepara: {r.stderr.strip()}")
+    cartella = os.path.join(home, ".local/state/pr-revisione", NOME)
+    p = os.path.join(cartella, "spec.json")
+    with open(p) as f:
+        spec = riempi(json.load(f))
+    with open(p, "w") as f:
+        json.dump(spec, f)
+    r = subprocess.run([sys.executable, ai, "genera", cartella], env=piena, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit(f"banco-revisioni: genera: {r.stderr.strip()}")
+    os.remove(os.path.join(finto, "gh.log"))
+    scrivi(os.path.join(finto, "lento.json"), json.dumps(RITARDI))
+    return lavish, env, cartella, finto
+
+
+def main(argv):
+    if len(argv) < 2 or argv[1] in ("-h", "--help"):
+        print(__doc__.strip())
+        return 0 if len(argv) > 1 else 2
+    home = os.path.realpath(argv[1])
+    stato = argv[argv.index("--stato-file") + 1] if "--stato-file" in argv else None
+    durata = float(argv[argv.index("--durata") + 1]) if "--durata" in argv else 3600.0
+    if os.path.exists(home) and os.listdir(home):
+        raise SystemExit(f"banco-revisioni: {home} non è vuota")
+    os.makedirs(home, exist_ok=True)
+    lavish, env, cartella, finto = prepara(home)
+    esecutore = subprocess.Popen([sys.executable, os.path.join(TOOLS, "pr-revisione-esecutore"), "servi"],
+                                 env=dict(os.environ, **env), stdout=subprocess.DEVNULL,
+                                 stderr=open(os.path.join(home, "esecutore.log"), "w"))
+    sock = os.path.join(home, ".local/state/pr-revisione-esecutore/pannello.sock")
+    for _ in range(600):
+        if os.path.exists(sock) and stat.S_ISSOCK(os.lstat(sock).st_mode):
+            break
+        if esecutore.poll() is not None:
+            raise SystemExit(f"banco-revisioni: l'esecutore si è fermato (log in {home}/esecutore.log)")
+        time.sleep(0.05)
+    else:
+        esecutore.terminate()
+        raise SystemExit("banco-revisioni: il socket del pannello non è comparso")
+    riga = json.dumps({"home": home, "env": env, "cartella": cartella, "nome": NOME, "gh_log": os.path.join(finto, "gh.log"),
+                       "socket": sock, "lavish_porta": lavish.server_address[1]})
+    if stato:
+        scrivi(stato, riga + "\n")
+    print(riga, flush=True)
+
+    fine = threading.Event()
+    for s in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(s, lambda *_: fine.set())
+    scade = time.monotonic() + durata
+    while not fine.is_set() and esecutore.poll() is None and time.monotonic() < scade:
+        fine.wait(0.5)
+    if esecutore.poll() is None:
+        esecutore.terminate()
+        try:
+            esecutore.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            esecutore.kill()
+    lavish.shutdown()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
