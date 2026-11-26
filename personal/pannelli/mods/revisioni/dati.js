@@ -113,19 +113,85 @@ export const elementoCarta = (sezione, carta) => `${sezione?.title ?? sezione?.i
 // Bruvish inline marks to Markdown: **bold** and `code` stay, ==highlight== becomes bold.
 export const inline = (t) => String(t ?? "").replace(/==([^=\n][^\n]*?)==/g, "**$1**");
 
-/** A Bruvish text block (string, or paragraphs, each a string or sentences) as Markdown paragraphs. */
+/** A Bruvish text block (string, or paragraphs, each a string or sentences) as paragraphs, marks kept. */
 export function paragrafi(valore) {
   if (valore === undefined || valore === null) return [];
   const blocco = Array.isArray(valore) ? valore : [valore];
   return blocco.map((p) => (Array.isArray(p) ? p : [p]).map((f) => {
     const o = f !== null && typeof f === "object";
-    const testo = inline(o ? f.text : f);
-    return o && f.highlight ? `**${testo}**` : testo;
+    const testo = String((o ? f.text : f) ?? "");
+    return o && f.highlight ? `==${testo}==` : testo;
   }).join(" ")).filter((p) => p.trim());
 }
 
+// ---- inline marks drawn as the review page draws them (Bruvish, theme «revisione»)
+
+const MARCHI = /`([^`\n]+)`|==([^=\n][^\n]*?)==|\*\*([^\n]+?)\*\*|(?<![*\w])\*([^*\s][^*\n]*?)\*(?![*\w])/g;
+
+/** A text with Bruvish marks as runs: [{ testo, stile }], stile one of normale, codice, evidenza, grassetto, corsivo. */
+export function segmenti(t) {
+  const s = String(t ?? ""), out = [];
+  let da = 0;
+  for (const m of s.matchAll(MARCHI)) {
+    if (m.index > da) out.push({ testo: s.slice(da, m.index), stile: "normale" });
+    const [, codice, evidenza, grassetto, corsivo] = m;
+    if (codice !== undefined) out.push({ testo: codice, stile: "codice" });
+    else if (evidenza !== undefined) out.push({ testo: piano(evidenza), stile: "evidenza" });
+    else if (grassetto !== undefined) out.push({ testo: piano(grassetto), stile: "grassetto" });
+    else out.push({ testo: corsivo, stile: "corsivo" });
+    da = m.index + m[0].length;
+  }
+  if (da < s.length) out.push({ testo: s.slice(da), stile: "normale" });
+  return out.filter((x) => x.testo);
+}
+
+/**
+ * The runs cut into words for a wrapping row: [[{ testo, stile }]], one array per word.
+ * A word may join runs («`pr merge`,» is code then a comma); spaces only separate words.
+ */
+export function parole(t) {
+  const out = [];
+  let corrente = [];
+  for (const r of segmenti(t)) {
+    const pezzi = r.testo.split(/(\s+)/);
+    for (const p of pezzi) {
+      if (!p) continue;
+      if (/^\s+$/.test(p)) { if (corrente.length) out.push(corrente); corrente = []; }
+      else corrente.push({ testo: p, stile: r.stile });
+    }
+  }
+  if (corrente.length) out.push(corrente);
+  return out;
+}
+
+/**
+ * The colors of the review page (Bruvish theme «revisione»: titles cyan, bold gold, italic
+ * lilac, code peach, highlight straw), for brudr's theme: on a dark theme the page's own
+ * values; on a light one darker tones of the same hues, each at least 5:1 on white.
+ */
+export const PALETTE = {
+  scuro: { titolo: "#4ed1de", grassetto: "#e5c07b", corsivo: "#e9d5ff", codice: "#ffb38a", evidenza: "#ecd6784d" },
+  chiaro: { titolo: "#086b75", grassetto: "#8a5300", corsivo: "#6d3fb0", codice: "#b03d0a", evidenza: "#e9cf5a73" },
+};
+
+/** Relative luminance of a #rgb / #rrggbb[aa] color, or null. */
+export function luminanza(c) {
+  const h = String(c ?? "").replace(/^#/, "");
+  const x = h.length === 3 || h.length === 4 ? [...h.slice(0, 3)].map((d) => d + d).join("") : h.slice(0, 6);
+  if (!/^[0-9a-f]{6}$/i.test(x)) return null;
+  const f = (v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [0, 2, 4].map((i) => f(parseInt(x.slice(i, i + 2), 16) / 255));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** The palette for brudr's theme: dark when the theme's text is light. */
+export function paletteRevisione(t) {
+  const l = luminanza(t?.foreground);
+  return l !== null && l < 0.4 ? PALETTE.chiaro : PALETTE.scuro;
+}
+
 /** A table cell: { testo, tono }. */
-export const cella = (c) => (typeof c === "string" ? { testo: inline(c), tono: null } : { testo: inline(c?.text ?? ""), tono: c?.tone ?? null });
+export const cella = (c) => (typeof c === "string" ? { testo: c, tono: null } : { testo: String(c?.text ?? ""), tono: c?.tone ?? null });
 
 /** The header's title without the PR number, which the facts table carries (header D, as Bruvish). */
 export const titoloSenzaNumero = (t) => piano(String(t ?? "").replace(/ #\d+$/, ""));

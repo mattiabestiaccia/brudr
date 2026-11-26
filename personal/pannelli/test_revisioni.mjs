@@ -69,10 +69,24 @@ test("tree: groups take the place of their first section", () => {
 });
 
 test("text blocks and marks", () => {
-  assert.deepEqual(D.paragrafi(["Una ==frase==.", ["a", { text: "b", highlight: true }]]), ["Una **frase**.", "a **b**"]);
+  assert.deepEqual(D.paragrafi(["Una ==frase==.", ["a", { text: "b", highlight: true }]]), ["Una ==frase==.", "a ==b=="]);
   assert.deepEqual(D.paragrafi(undefined), []);
   assert.equal(D.piano("**a** `b` ==c=="), "a b c");
   assert.equal(D.titoloSenzaNumero("feat: x #6"), "feat: x");
+});
+
+test("marks become colored runs, cut into words, with the review page's colors", () => {
+  assert.deepEqual(D.segmenti("Un **forte**, un *corsivo*, `pr merge` e ==questo=="), [
+    { testo: "Un ", stile: "normale" }, { testo: "forte", stile: "grassetto" }, { testo: ", un ", stile: "normale" },
+    { testo: "corsivo", stile: "corsivo" }, { testo: ", ", stile: "normale" }, { testo: "pr merge", stile: "codice" },
+    { testo: " e ", stile: "normale" }, { testo: "questo", stile: "evidenza" }]);
+  assert.deepEqual(D.segmenti("a*b*c e 2 * 3 * 4"), [{ testo: "a*b*c e 2 * 3 * 4", stile: "normale" }], "no italic inside words or around spaces");
+  assert.deepEqual(D.parole("`pr merge`, poi"), [[{ testo: "pr", stile: "codice" }], [{ testo: "merge", stile: "codice" }, { testo: ",", stile: "normale" }], [{ testo: "poi", stile: "normale" }]]);
+  assert.deepEqual(D.parole("  "), []);
+  assert.equal(D.paletteRevisione({ foreground: "#e6e6e6" }).titolo, "#4ed1de", "dark theme: the page's own colors");
+  assert.equal(D.paletteRevisione({ foreground: "#1d1d1f" }).titolo, "#086b75", "light theme: darker tones");
+  assert.equal(D.paletteRevisione({}).grassetto, "#e5c07b");
+  assert.equal(D.luminanza("#fff"), 1);
 });
 
 test("state after an answer", () => {
@@ -127,7 +141,7 @@ test("list, then a review widens the panel and going back restores it", async ()
   assert.deepEqual(b.comandi.at(-1), ["layout.resize", { id: "panel", weight: 3 }]);
   const r = b.testi();
   assert.ok(r.includes("feat: fa stampare l'aiuto anche a -h"), "title without the PR number");
-  for (const x of ["Aperta", "Repository", "`mattiabestiaccia/postit`", "Sintesi", "Verifiche", "Modifiche", "Storia"]) assert.ok(r.includes(x), x);
+  for (const x of ["Aperta", "Repository", "mattiabestiaccia/postit", "Sintesi", "Verifiche", "Modifiche", "Storia"]) assert.ok(r.includes(x), x);
   await b.clic("nav-file");
   assert.ok(b.testi().some((x) => /^src\//.test(x) || x.includes(".")), "the diff's files");
   await b.clic("indietro");
@@ -149,7 +163,7 @@ test("an operation runs only on Confirm, and the state follows the answer at onc
   assert.equal(b.clicFatti()[0].timeout, 310000);
   assert.equal(b.v.statoMostrato(), "unita");
   assert.ok(b.testi().includes("Unita"));
-  assert.ok(b.testi().includes("✓ Fatto"));
+  assert.ok(b.testi().join(" ").includes("✓ Fatto"), "the outcome, its words drawn one by one");
   // The view is used: until pagina.json brings a new one, operations are off.
   await b.clic("op-primary-unisci");
   assert.equal(b.v.conferma, null, "the used view's buttons are off");
@@ -163,7 +177,7 @@ test("a refused request leaves the view usable", async () => {
   await b.clic("op-primary-unisci");
   await b.clic("conferma-testata");
   assert.equal(b.v.statoMostrato(), "aperta");
-  assert.ok(b.testi().some((x) => x.includes("l'esecutore non ascolta")));
+  assert.ok(b.testi().join(" ").includes("l'esecutore non ascolta"));
   assert.equal(b.v.usata, null);
 });
 
@@ -208,7 +222,7 @@ test("a card note with a dragged image and a capture", async () => {
   assert.deepEqual(n.args.slice(0, 6), ["nota", NOME, "--testo", "Il rischio non mi torna", "--elemento", "Sintesi › Rischi"]);
   assert.deepEqual(n.args.filter((_x, i) => n.args[i - 1] === "--immagine"), ["/x/a.png", "/x/c.JPG", cattura.args[1]]);
   assert.equal(b.v.nota, null);
-  assert.ok(b.testi().includes("Nota in coda per l'agente."));
+  assert.ok(b.testi().join(" ").includes("Nota in coda per l'agente."));
 });
 
 test("a diff line: note to the agent, or a line comment on GitHub after Confirm", async () => {

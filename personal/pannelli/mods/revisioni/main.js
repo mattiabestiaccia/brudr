@@ -18,12 +18,13 @@
 //   web block `revisioni-web` of the panel stack, by rewriting that block's URL in the
 //   layout file (a web block has no API: a new URL recreates the view).
 import { View, div, svg } from "gpui-kit";
-import { v_flex, h_flex, InputState, Input, TextareaState, Textarea, TextView } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, TextareaState, Textarea } from "gpui-base";
 import { exec, home, appHome, readTextFile, writeTextFile, watchFolder, layout, run, shared, theme, settings, notify } from "herdr";
 import {
   STATI, coloreTono, IMMAGINE, MAX_IMMAGINI, ATTESA_S, leggiElenco, leggiPagina, albero, sezioneScelta,
-  elementoCarta, inline, paragrafi, cella, piano, operazioni, offerte, statoDopo, argomentiClic, leggiRisposta, rigaEsito,
+  elementoCarta, paragrafi, cella, piano, operazioni, offerte, statoDopo, argomentiClic, leggiRisposta, rigaEsito,
   parseDiff, statoFile, titoloSenzaNumero, senzaTab, portaLavish, urlLavish, conUrl, trova, testoErrore,
+  parole, paletteRevisione,
 } from "./dati.js";
 
 const STACK = "panel-body", PANEL = "panel", BLOCCO = "revisioni", WEB = "revisioni-web";
@@ -321,9 +322,25 @@ export default class Revisioni extends View {
       .when(Boolean(testo), (e) => e.child(testo));
   }
 
-  md(id, testo, t, { colore = null, size = null } = {}) {
-    return div().min_w(0).text_color(colore ?? t.foreground).when(Boolean(size), (e) => e.text_size(size))
-      .child(TextView.markdown(id, inline(testo)).selectable(true));
+  // Text with the review page's marks (Bruvish theme «revisione»): bold, italic, code and
+  // highlight each in its own color, so they stand apart as on the page. TextView draws marks
+  // in the text color only, so the text is laid out here: one element per word in a wrapping
+  // row, a word made of its runs («`pr merge`,» is code, then a plain comma).
+  md(id, testo, t, { colore = null, size = 13 } = {}) {
+    const p = paletteRevisione(t), mono = settings().font_family ?? "JetBrains Mono";
+    const pezzo = (x, k) => {
+      const e = div().id(`${id}-${k}`).child(x.testo);
+      if (x.stile === "grassetto") return e.font_weight(700).text_color(p.grassetto);
+      if (x.stile === "corsivo") return e.italic().text_color(p.corsivo);
+      if (x.stile === "codice") return e.font_family(mono).text_size(size * 0.92).text_color(p.codice);
+      // Highlight: half the word gap of padding on each side, pulled back by the same margin,
+      // so the highlighted words of a run touch and read as one band, as on the page.
+      if (x.stile === "evidenza") return e.bg(p.evidenza).px(size * 0.135).mx(-size * 0.135);
+      return e;
+    };
+    return h_flex().id(id).min_w(0).flex_wrap().items_baseline().gap_x(size * 0.27).gap_y(1)
+      .text_size(size).line_height(1.5).text_color(colore ?? t.foreground)
+      .children(parole(testo).map((w, i) => (w.length === 1 ? pezzo(w[0], i) : h_flex().items_baseline().children(w.map((x, j) => pezzo(x, `${i}-${j}`))))));
   }
 
   // ---- the list
@@ -416,7 +433,7 @@ export default class Revisioni extends View {
         .child(this.valoreFatto(f, i, t))));
     return v_flex().flex_none().px(14).pt(12).pb(10).gap(8).border_b(1).border_color(t.border)
       .child(h_flex().gap(12).items_start()
-        .child(div().flex_1().min_w(0).text_size(15).font_semibold().child(titoloSenzaNumero(p.title)))
+        .child(div().flex_1().min_w(0).text_size(15).font_semibold().text_color(paletteRevisione(t).titolo).child(titoloSenzaNumero(p.title)))
         .child(azioni)
         .child(this.badge(stato, t)))
       .when(this.menu && ops.menu.length > 0, (e) => e.child(h_flex().flex_wrap().gap(4).justify_end()
@@ -447,14 +464,14 @@ export default class Revisioni extends View {
   chip(id, testo, tono, t) {
     const c = t[coloreTono(tono)] ?? t.dim;
     return h_flex().id(id).h(20).px(7).gap(5).items_center().rounded(10).bg(t.raised).border(1).border_color(t.border).text_size(11)
-      .child(div().size(6).rounded(3).bg(c)).child(div().child(TextView.markdown(`${id}-t`, inline(testo))));
+      .child(div().size(6).rounded(3).bg(c)).child(this.md(`${id}-t`, testo, t, { size: 11 }));
   }
 
   rigaEsitoVista(t) {
     const c = t[coloreTono(this.esito.tono)] ?? t.dim;
     return h_flex().id("esito").gap(7).items_start().px(10).py(6).rounded(7).bg(t.raised).border(1).border_color(t.border)
       .child(div().mt(4).size(7).rounded(4).flex_none().bg(c))
-      .child(div().flex_1().min_w(0).text_size(12).child(this.esito.testo))
+      .child(div().flex_1().min_w(0).child(this.md("esito-testo", this.esito.testo, t, { size: 12 })))
       .child(div().id("esito-chiudi").text_size(11).text_color(t.dim).cursor_pointer().on_click((_e, cx) => { this.esito = null; cx.notify(); }).child("chiudi"));
   }
 
@@ -513,7 +530,7 @@ export default class Revisioni extends View {
   sezioneVista(sez, t) {
     if (!sez) return div().p(14).text_color(t.dim).child("La pagina non ha sezioni.");
     return v_flex().p(12).gap(10)
-      .child(div().text_size(14).font_semibold().child(sez.title ?? sez.id))
+      .child(div().text_size(14).font_semibold().text_color(paletteRevisione(t).titolo).child(sez.title ?? sez.id))
       .children((sez.cards ?? []).map((c) => this.carta(sez, c, t)));
   }
 
@@ -524,7 +541,7 @@ export default class Revisioni extends View {
     const elemento = elementoCarta(sez, c);
     const testa = h_flex().gap(6).items_center()
       .when(Boolean(tono), (e) => e.child(div().size(7).rounded(4).flex_none().bg(tono)))
-      .child(div().flex_1().min_w(0).font_semibold().text_size(13).child(piano(c.title ?? "")))
+      .child(div().flex_1().min_w(0).font_semibold().text_size(13).text_color(paletteRevisione(t).titolo).child(piano(c.title ?? "")))
       .children((c.labels ?? []).map((l, i) => this.chip(`${id}-l${i}`, l.text, l.tone, t)))
       .when(Boolean(c.voice), (e) => e.child(this.bottone(`${id}-voce`, null, () => { exec("/usr/bin/say", [piano(c.voice)]); }, t, { icona: "voce", aiuto: "Leggi la carta ad alta voce" })))
       .when(c.help !== undefined || c.summary !== undefined, (e) => e.child(this.bottone(`${id}-aiuto`, "?", (_e, cx) => {
@@ -568,8 +585,8 @@ export default class Revisioni extends View {
         const c = testa ? { testo: piano(x), tono: null } : cella(x);
         return div().flex_1().min_w(0).text_size(testa ? 11 : 12).text_color(testa ? t.dim : t.foreground)
           .when(Boolean(c.tono), (e) => e.child(h_flex().gap(5).items_center().child(div().size(6).rounded(3).flex_none().bg(t[coloreTono(c.tono)] ?? t.dim))
-            .child(div().min_w(0).child(TextView.markdown(`${id}-t${i}-${j}`, c.testo)))))
-          .when(!c.tono, (e) => e.child(testa ? c.testo : TextView.markdown(`${id}-t${i}-${j}`, c.testo)));
+            .child(div().min_w(0).child(this.md(`${id}-t${i}-${j}`, c.testo, t, { size: 12 })))))
+          .when(!c.tono, (e) => e.child(testa ? c.testo : this.md(`${id}-t${i}-${j}`, c.testo, t, { size: 12 })));
       }));
     return v_flex().rounded(6).border(1).border_color(t.border).bg(t.chrome)
       .child(riga(tab.headers, "h", true))
