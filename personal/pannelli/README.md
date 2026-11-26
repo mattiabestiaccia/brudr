@@ -34,6 +34,7 @@ Privato vuol dire: il terminale porta l'etichetta di core `brudr.private=1` dall
 | `test_revisioni.mjs` | prove del pannello Revisioni: `node --test personal/pannelli/test_revisioni.mjs`; l'ultima usa `banco-revisioni` con l'esecutore vero |
 | `banco-revisioni` | una revisione di prova (postit-6) con un GitHub finto, i ritardi misurati su PR vere e l'esecutore avviato a mano (`PR_REVISIONE_PROVE=1`); per le prove e per la VM |
 | `test-dati/postit-6-pagina.json` | il `pagina.json` della revisione di prova, fatto da `banco-revisioni` |
+| `catture/revisioni/` | il pannello Revisioni in brudr, in una VM macOS con `banco-revisioni`: elenco, revisione aperta, tendina di «Unisci», operazione in corso, «Unita», la stessa revisione in Lavish (V1), nota, diff |
 | `mods/nuova-scheda/` | il menu «+» di brudr: copia di `new-menu` con Terminal, CCB, PIB, GPB, CCF, PIF |
 | `test_schede.mjs` | prove della scheda a tre pannelli con un brudr finto: `node --test personal/pannelli/test_schede.mjs` |
 | `brudr-pannello` | il programma di ogni pannello; non finisce mai da solo |
