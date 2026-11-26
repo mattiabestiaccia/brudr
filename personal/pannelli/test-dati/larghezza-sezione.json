@@ -1,0 +1,113 @@
+{
+ "nota": "Sezione da aggiungere al pagina.json della revisione di prova (banco-revisioni), per vedere i colori delle carte, la carta con la tabella senza testa e la carta più larga del pannello.",
+ "sezione": {
+  "id": "colori",
+  "title": "Colori e larghezza",
+  "dot": "arancione",
+  "cards": [
+   {
+    "id": "carta-colori-1",
+    "title": "Cosa cambia",
+    "tone": "arancione",
+    "help": "Una cella più larga della carta: la carta scorre di lato.",
+    "table": {
+     "headers": [
+      "Dove",
+      "Prima",
+      "Dopo"
+     ],
+     "rows": [
+      [
+       "`config/ruolo.json` e `config/generati/ruolo.json`",
+       "La variabile degli funzioni opzionali non c'era",
+       "`VARIABILE_SPERIMENTALE_DEL_RUOLO_A` nel ruolo A"
+      ],
+      [
+       "`matrice.toml`, sezione `[permessi.scrittura]`",
+       "Nessuna riga per `~/lavoro`",
+       "Riga ==atelier== per i ruoli `A` e `B`"
+      ]
+     ]
+    }
+   },
+   {
+    "id": "carta-colori-2",
+    "title": "Il fatto che la rende sicura",
+    "tone": "blu",
+    "help": "Il fatto su cui poggia la sicurezza e a che gradino della prova è arrivato.",
+    "table": {
+     "rows": [
+      [
+       "Il fatto",
+       "Ogni ruolo riceve solo ciò che gli spetta: il ruolo A la variabile e `~/lavoro`, base e worker nulla."
+      ],
+      [
+       "Come è stato provato",
+       "Il gate ha installato i generati in una casa finta e li ha passati dal vero `bin/avvia-ruolo`: un finto `agente` ha registrato le impostazioni ricevute."
+      ],
+      [
+       "Gradino della prova",
+       "4 di 5"
+      ],
+      [
+       "Per il gradino dopo",
+       "Una sessione vera dopo l'installazione."
+      ]
+     ]
+    }
+   },
+   {
+    "id": "carta-colori-3",
+    "title": "Gate",
+    "tone": "verde",
+    "labels": [
+     {
+      "text": "9 su 9",
+      "tone": "verde"
+     }
+    ],
+    "paragraphs": [
+     "Tutti i passi del gate sono **passati**, senza rilievi."
+    ]
+   },
+   {
+    "id": "carta-colori-4",
+    "title": "Rischi",
+    "tone": "rosso",
+    "labels": [
+     {
+      "text": "Bloccante",
+      "tone": "rosso"
+     }
+    ],
+    "paragraphs": [
+     "Il ramo non è aggiornato rispetto alla base: `rebase` prima di unire."
+    ]
+   },
+   {
+    "id": "carta-colori-5",
+    "title": "Da decidere",
+    "tone": "decidi",
+    "labels": [
+     {
+      "text": "Aspetta te",
+      "tone": "decidi"
+     }
+    ],
+    "paragraphs": [
+     "Serve una scelta prima di unire: tenere o togliere la riga di prova."
+    ]
+   },
+   {
+    "id": "carta-colori-6",
+    "title": "Prove a schermo",
+    "tone": "viola",
+    "status": "blocked",
+    "paragraphs": [
+     "Una carta con lo stato «bloccata»: il bordo è rosso anche se il tono è un altro."
+    ]
+   }
+  ]
+ },
+ "dopo": "sintesi"
+}

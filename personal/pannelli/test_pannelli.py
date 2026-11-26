@@ -323,6 +323,8 @@ class Layout(unittest.TestCase):
         panel = trova(d, "panel")
         self.assertIsNotNone(panel)
         self.assertTrue(panel and panel["hidden"], "the panel column keeps its place and look")
+        self.assertEqual(panel["max"], 4000, "no 900 px cap: Revisioni widens the panel to 3/4 of the row up to the window's edge")
+        self.assertEqual(panel["size"], {"px": 368}, "closed, the panel keeps its width")
 
     def test_senza_panel_body_rifiuta(self):
         r, out, _ = self.crea({"id": "root", "type": "row", "children": []})

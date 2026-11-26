@@ -10,6 +10,9 @@ Same window as the source (look, transparency, sidebar, status), with two change
   panel's own gray background; after Hunk the PR reviews: the mod block
   "revisioni" and, before it, the web block "revisioni-web" of its V1 prototype
   (the mod writes a review's Lavish session URL there);
+- the right panel's column "panel" has no 900 px cap (max PANNELLO_MAX): the Revisioni
+  mod widens it by weight to 3/4 of the row, and a cap left the part of the row
+  beyond it empty on the right of a wide window;
 - the tab bar block "tabs" runs the `pannelli` mod instead of `tabs`, putting
   the side panel buttons in place of Files and Changes.
 The ids "files" and "changes" stay. The source file is only read.
@@ -20,6 +23,9 @@ import os
 import sys
 
 TITOLO = "brudr pannelli"
+# A cap nobody reaches: the panel is 368 px until Revisioni widens it by weight, and then it takes
+# 3/4 of the row up to the window's edge, however wide the window.
+PANNELLO_MAX = 4000
 FIGLI = [
     ("spf-vista", "brudr-spf-vista"),  # before files: see VISTE in mods/pannelli/blocchi.js
     ("files", "brudr-spf"),
@@ -83,6 +89,10 @@ def crea(sorgente):
     if len(schede) != 1:
         raise ValueError("the source must have exactly one tab bar block (id tabs, mod tabs)")
     schede[0]["content"]["mod"] = "pannelli"
+    pannelli = [n for n in nodi(d) if n.get("id") == "panel"]
+    if len(pannelli) != 1:
+        raise ValueError("the source must have exactly one right panel (id panel)")
+    pannelli[0]["max"] = PANNELLO_MAX
     d["title"] = TITOLO
     d.pop("cloned_from", None)
     return d

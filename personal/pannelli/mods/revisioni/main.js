@@ -24,16 +24,17 @@ import {
   STATI, coloreTono, IMMAGINE, MAX_IMMAGINI, ATTESA_S, leggiElenco, leggiPagina, albero, sezioneScelta,
   elementoCarta, paragrafi, cella, piano, operazioni, offerte, statoDopo, argomentiClic, leggiRisposta, rigaEsito,
   parseDiff, statoFile, titoloSenzaNumero, senzaTab, portaLavish, urlLavish, conUrl, trova, testoErrore,
-  parole, paletteRevisione,
+  parole, paletteRevisione, tinta, conAlfa, mescola, tonoCarta, tabellaSenzaTesta, larghezzaCarta, colonneTabella, paroleLarga, ETICHETTA,
 } from "./dati.js";
 
 const STACK = "panel-body", PANEL = "panel", BLOCCO = "revisioni", WEB = "revisioni-web";
-const LARGHEZZA_MAX = 900; // the panel column's max when the layout does not say
+const LARGHEZZA_MAX = 4000; // the panel column's max when the layout does not say (crea-layout writes this one)
 const LARGHEZZA = 368; // the panel column's width in the layout, put back when nothing was saved
 // Widened by weight, not px: a px column doesn't shrink with the window, so on a window
 // narrower than sidebar + 900 px the panel ran past its right edge and hid the header's
-// operations (seen in the VM, 1024 pt screen). A weight takes 3/4 of the row and the
-// layout's max (900) still caps it on a wide window.
+// operations (seen in the VM, 1024 pt screen). A weight takes 3/4 of the row, whatever the
+// window: the layout's max is high enough (4000) to leave no empty strip on its right, which a
+// 900 px max did on a wide window.
 const PESO = 3;
 const RIGHE_PER_FILE = 600; // a diff file longer than this: the rest is in Lavish
 const icona = (nome) => `mods/revisioni/icone/${nome}.svg`;
@@ -308,6 +309,11 @@ export default class Revisioni extends View {
     return v_flex().id("revisioni").size_full().min_h(0).min_w(0).bg(t.chrome).text_color(t.foreground).text_size(12.5).child(corpo);
   }
 
+  // The color of a tone as the review page has it (blue, green, yellow, red, violet, orange; dim for «vuoto»).
+  tono(tono, t) {
+    return tinta(tono, t) ?? t.dim;
+  }
+
   bottone(id, testo, azione, t, { primario = false, pericolo = false, icona: ic = null, aiuto = null, spento = false } = {}) {
     const colore = spento ? t.dim : primario ? t.solid_foreground : pericolo ? t.ansi1 : t.foreground;
     return h_flex().id(id).h(26).px(ic && !testo ? 0 : 9).when(Boolean(ic && !testo), (e) => e.w(26).justify_center()).gap(5)
@@ -462,13 +468,13 @@ export default class Revisioni extends View {
   }
 
   chip(id, testo, tono, t) {
-    const c = t[coloreTono(tono)] ?? t.dim;
+    const c = this.tono(tono, t);
     return h_flex().id(id).h(20).px(7).gap(5).items_center().rounded(10).bg(t.raised).border(1).border_color(t.border).text_size(11)
       .child(div().size(6).rounded(3).bg(c)).child(this.md(`${id}-t`, testo, t, { size: 11 }));
   }
 
   rigaEsitoVista(t) {
-    const c = t[coloreTono(this.esito.tono)] ?? t.dim;
+    const c = this.tono(this.esito.tono, t);
     return h_flex().id("esito").gap(7).items_start().px(10).py(6).rounded(7).bg(t.raised).border(1).border_color(t.border)
       .child(div().mt(4).size(7).rounded(4).flex_none().bg(c))
       .child(div().flex_1().min_w(0).child(this.md("esito-testo", this.esito.testo, t, { size: 12 })))
@@ -509,7 +515,7 @@ export default class Revisioni extends View {
       return h_flex().id(`nav-${v.id}`).h(26).pl(8 + rientro).pr(8).gap(6).items_center().rounded(6).cursor_pointer()
         .bg(su ? t.selected : t.chrome).text_color(su ? t.foreground : t.muted).hover((s) => s.bg(t.hover))
         .on_click((_e, cx) => { this.sezione = v.id; this.conferma = null; this.nota = null; cx.notify(); })
-        .child(div().size(6).rounded(3).flex_none().bg(v.dot ? t[coloreTono(v.dot)] ?? t.dim : t.chrome))
+        .child(div().size(6).rounded(3).flex_none().bg(v.dot ? this.tono(v.dot, t) : t.chrome))
         .child(div().flex_1().min_w(0).truncate().text_size(12).child(v.titolo))
         .when(Boolean(v.count), (e) => e.child(div().flex_none().text_size(10.5).text_color(t.dim).child(String(v.count))));
     };
@@ -521,7 +527,7 @@ export default class Revisioni extends View {
           .on_click((_e, cx) => { chiuso ? this.chiusi.delete(v.id) : this.chiusi.add(v.id); cx.notify(); })
           .child(div().flex_none().child(chiuso ? "▸" : "▾"))
           .child(div().flex_1().truncate().child(v.titolo))
-          .when(Boolean(v.dot), (e) => e.child(div().size(6).rounded(3).bg(t[coloreTono(v.dot)] ?? t.dim)))
+          .when(Boolean(v.dot), (e) => e.child(div().size(6).rounded(3).bg(this.tono(v.dot, t))))
           .when(Boolean(v.count), (e) => e.child(div().child(String(v.count)))))
         .when(!chiuso, (e) => e.children(v.figli.map((f) => voce(f, 10))));
     }));
@@ -529,7 +535,9 @@ export default class Revisioni extends View {
 
   sezioneVista(sez, t) {
     if (!sez) return div().p(14).text_color(t.dim).child("La pagina non ha sezioni.");
-    return v_flex().p(12).gap(10)
+    // min_w(0): the column is a flex item of the scroll area and would grow to its widest content
+    // (a long word, a wide table) instead of leaving that to the card, which scrolls sideways.
+    return v_flex().w_full().min_w(0).p(12).gap(10)
       .child(div().text_size(14).font_semibold().text_color(paletteRevisione(t).titolo).child(sez.title ?? sez.id))
       .children((sez.cards ?? []).map((c) => this.carta(sez, c, t)));
   }
@@ -537,10 +545,11 @@ export default class Revisioni extends View {
   carta(sez, c, t) {
     const id = c.id ?? `${sez.id}-${(sez.cards ?? []).indexOf(c)}`;
     const aiuto = this.aiuto.has(id);
-    const tono = c.tone ? t[coloreTono(c.tone)] : null;
+    const { tono: nomeTono, forte } = tonoCarta(c);
+    const tono = this.tono(nomeTono, t);
     const elemento = elementoCarta(sez, c);
     const testa = h_flex().gap(6).items_center()
-      .when(Boolean(tono), (e) => e.child(div().size(7).rounded(4).flex_none().bg(tono)))
+      .child(div().size(7).rounded(4).flex_none().bg(tono))
       .child(div().flex_1().min_w(0).font_semibold().text_size(13).text_color(paletteRevisione(t).titolo).child(piano(c.title ?? "")))
       .children((c.labels ?? []).map((l, i) => this.chip(`${id}-l${i}`, l.text, l.tone, t)))
       .when(Boolean(c.voice), (e) => e.child(this.bottone(`${id}-voce`, null, () => { exec("/usr/bin/say", [piano(c.voice)]); }, t, { icona: "voce", aiuto: "Leggi la carta ad alta voce" })))
@@ -548,8 +557,9 @@ export default class Revisioni extends View {
         aiuto ? this.aiuto.delete(id) : this.aiuto.add(id); cx.notify();
       }, t, { aiuto: "A cosa serve questa carta" })))
       .child(this.bottone(`${id}-nota`, null, (_e, cx) => this.scriviNota(id, { elemento }, cx), t, { icona: "nota", aiuto: "Nota per l'agente su questa carta" }));
-    return v_flex().id(`carta-${id}`).gap(8).p(12).rounded(8).bg(t.raised).border(1).border_color(t.border)
-      .child(testa)
+    // The body of the card is at least as wide as its longest unbreakable word or table needs, and sits in a
+    // sideways scroll area: a card that does not fit the panel scrolls by itself, the title row stays put.
+    const corpo = v_flex().w_full().min_w(larghezzaCarta(c)).gap(8)
       .when(aiuto, (e) => e.child(v_flex().gap(4).p(8).rounded(6).bg(t.chrome)
         .when(c.help !== undefined, (x) => x.child(div().text_size(11).text_color(t.dim).font_semibold().child("A cosa ti serve"))
           .children(paragrafi(c.help).map((p, i) => this.md(`${id}-h${i}`, p, t, { colore: t.muted, size: 12 }))))
@@ -557,16 +567,17 @@ export default class Revisioni extends View {
           .children(paragrafi(c.summary).map((p, i) => this.md(`${id}-s${i}`, p, t, { colore: t.muted, size: 12 }))))))
       .children(paragrafi(c.paragraphs).map((p, i) => this.md(`${id}-p${i}`, p, t)))
       .when(Array.isArray(c.fields), (e) => e.child(v_flex().gap(6).children(c.fields.map((f, i) => h_flex().gap(10).items_start()
-        .child(div().w(132).flex_none().text_size(11.5).text_color(t.dim).child(piano(f.label)))
-        .child(v_flex().flex_1().min_w(0).gap(4).children(paragrafi(f.paragraphs).map((p, j) => this.md(`${id}-f${i}-${j}`, p, t))))))))
+        .child(div().w(ETICHETTA).flex_none().text_size(11.5).text_color(t.dim).child(piano(f.label)))
+        .child(v_flex().flex_1().min_w(Math.max(0, ...paragrafi(f.paragraphs).map((p) => paroleLarga(p, 13)))).gap(4).children(paragrafi(f.paragraphs).map((p, j) => this.md(`${id}-f${i}-${j}`, p, t))))))))
       .when(Boolean(c.table?.headers), (e) => e.child(this.tabella(id, c.table, t)))
+      .when(Boolean(tabellaSenzaTesta(c.table)), (e) => e.child(this.tabellaEtichette(id, tabellaSenzaTesta(c.table), t)))
       .when(Array.isArray(c.images), (e) => e.child(v_flex().gap(4).children(c.images.map((im, i) => h_flex().id(`${id}-im${i}`).gap(6).items_center()
         .cursor_pointer().hover((s) => s.opacity(0.8)).tooltip("Apri l'immagine")
         .on_click(() => { if (this.r?.cartella && /^[A-Za-z0-9][\w.-]*$/.test(im.file)) exec(OPEN, [`${this.r.cartella}/${im.file}`]); })
         .child(svg(icona("immagine")).size(14).text_color(t.accent))
         .child(div().text_size(12).text_color(t.accent).child(piano(im.caption ?? im.file)))))))
       .when(Array.isArray(c.events), (e) => e.child(v_flex().gap(4).children(c.events.map((ev, i) => h_flex().gap(7).items_start()
-        .child(div().mt(5).size(6).rounded(3).flex_none().bg(t[coloreTono(ev.tone)] ?? t.dim))
+        .child(div().mt(5).size(6).rounded(3).flex_none().bg(this.tono(ev.tone, t)))
         .child(div().flex_1().min_w(0).child(this.md(`${id}-e${i}`, ev.text, t, { size: 12 })))))))
       .when(Boolean(c.transcript), (e) => e.child(this.trascrizione(id, c.transcript, t)))
       .when(Boolean(c.figura), (e) => e.child(div().text_size(11.5).text_color(t.dim).child("La figura di questa carta si vede nella pagina Lavish.")))
@@ -576,21 +587,43 @@ export default class Revisioni extends View {
       .when(Array.isArray(c.notes) && c.notes.length > 0, (e) => e.child(v_flex().gap(3).pt(6).border_t(1).border_color(t.border)
         .children(c.notes.map((n, i) => this.md(`${id}-n${i}`, n, t, { colore: t.dim, size: 11.5 })))))
       .when(this.nota?.dove === id, (e) => e.child(this.compositore(t)))
+    // The card as the page draws it: the border and a light tint in the color of its state or tone, stronger for yellow.
+    return v_flex().id(`carta-${id}`).w_full().min_w(0).gap(8).p(12).rounded(8).bg(mescola(t.raised, tono, forte ? 0.09 : 0.07)).border(1).border_color(conAlfa(tono, forte ? 0.8 : 0.55))
+      .child(testa)
+      .child(div().id(`${id}-scorri`).w_full().overflow_x_scroll().child(corpo));
   }
 
   tabella(id, tab, t) {
-    const righe = tab.rows ?? [];
+    const righe = tab.rows ?? [], colonne = colonneTabella(tab);
     const riga = (celle, i, testa) => h_flex().gap(8).items_start().py(4).px(6).when(!testa, (e) => e.border_t(1).border_color(t.border))
       .children(celle.map((x, j) => {
         const c = testa ? { testo: piano(x), tono: null } : cella(x);
-        return div().flex_1().min_w(0).text_size(testa ? 11 : 12).text_color(testa ? t.dim : t.foreground)
-          .when(Boolean(c.tono), (e) => e.child(h_flex().gap(5).items_center().child(div().size(6).rounded(3).flex_none().bg(t[coloreTono(c.tono)] ?? t.dim))
+        return div().flex_1().min_w(colonne[j] ?? 0).text_size(testa ? 11 : 12).text_color(testa ? t.dim : t.foreground)
+          .when(Boolean(c.tono), (e) => e.child(h_flex().gap(5).items_center().child(div().size(6).rounded(3).flex_none().bg(this.tono(c.tono, t)))
             .child(div().min_w(0).child(this.md(`${id}-t${i}-${j}`, c.testo, t, { size: 12 })))))
           .when(!c.tono, (e) => e.child(testa ? c.testo : this.md(`${id}-t${i}-${j}`, c.testo, t, { size: 12 })));
       }));
     return v_flex().rounded(6).border(1).border_color(t.border).bg(t.chrome)
       .child(riga(tab.headers, "h", true))
       .children(righe.map((r, i) => riga(r, i, false)));
+  }
+
+  // A table with no headers: a label and its text on each row (the fact that makes a change safe, how it
+  // was proved), as the review page draws it.
+  tabellaEtichette(id, righe, t) {
+    return v_flex().rounded(6).border(1).border_color(t.border).bg(t.chrome)
+      .children(righe.map((riga, i) => {
+        const [etichetta, ...resto] = Array.isArray(riga) ? riga : [riga];
+        return h_flex().gap(10).items_start().py(5).px(8).when(i > 0, (e) => e.border_t(1).border_color(t.border))
+          .child(div().w(ETICHETTA).flex_none().text_size(11.5).text_color(t.dim).child(piano(cella(etichetta).testo)))
+          .child(v_flex().flex_1().min_w(Math.max(0, ...resto.map((x) => paroleLarga(cella(x).testo, 12)))).gap(3).children(resto.map((x, j) => {
+            const c = cella(x);
+            return c.tono
+              ? h_flex().gap(5).items_center().child(div().size(6).rounded(3).flex_none().bg(this.tono(c.tono, t)))
+                .child(div().min_w(0).child(this.md(`${id}-q${i}-${j}`, c.testo, t, { size: 12 })))
+              : this.md(`${id}-q${i}-${j}`, c.testo, t, { size: 12 });
+          })));
+      }));
   }
 
   trascrizione(id, tr, t) {

@@ -89,6 +89,48 @@ test("marks become colored runs, cut into words, with the review page's colors",
   assert.equal(D.luminanza("#fff"), 1);
 });
 
+test("semantic colors: the page's tones, in dark and light, and the card's state or tone", () => {
+  const scuro = { foreground: "#e6e6e6" }, chiaro = { foreground: "#1d1d1f" };
+  assert.deepEqual(["blu", "verde", "giallo", "rosso", "viola", "arancione", "decidi"].map((x) => D.tinta(x, scuro)),
+    ["#6bb5ff", "#63ca84", "#e8c35a", "#fe8b83", "#a371f7", "#ff9440", "#e8c35a"]);
+  assert.equal(D.tinta("verde", chiaro), "#1a7f37", "a darker green on a light theme");
+  assert.equal(D.tinta("vuoto", scuro), null);
+  assert.equal(D.tinta("nonesiste", scuro), null);
+  assert.equal(D.conAlfa("#6bb5ff", 0.55), "#6bb5ff8c");
+  assert.equal(D.mescola("#000000", "#ffffff", 0.5), "#808080");
+  assert.equal(D.mescola("rgba(1,2,3,1)", "#ffffff", 0.5), "rgba(1,2,3,1)", "a base that is not hex stays as it is");
+  assert.deepEqual(D.tonoCarta({ tone: "arancione" }), { tono: "arancione", forte: false });
+  assert.deepEqual(D.tonoCarta({}), { tono: "blu", forte: false }, "a card with no tone is blue, as on the page");
+  assert.deepEqual(D.tonoCarta({ tone: "blu", status: "blocked" }), { tono: "rosso", forte: false }, "the state wins");
+  assert.deepEqual(D.tonoCarta({ tone: "blu", status: "answered" }), { tono: "verde", forte: false });
+  assert.deepEqual(D.tonoCarta({ tone: "decidi" }), { tono: "decidi", forte: true }, "yellow is the intense one");
+  assert.deepEqual(D.tonoCarta({ status: "waiting" }), { tono: "giallo", forte: true });
+});
+
+test("a table with no headers is label and text, not an empty card", () => {
+  assert.deepEqual(D.tabellaSenzaTesta({ rows: [["Il fatto", "testo"]] }), [["Il fatto", "testo"]]);
+  assert.equal(D.tabellaSenzaTesta({ headers: ["A"], rows: [["x"]] }), null);
+  assert.equal(D.tabellaSenzaTesta(undefined), null);
+});
+
+test("how wide a card must be to keep its words whole", () => {
+  assert.equal(D.paroleLarga("poche parole", 12), Math.ceil(6 * 12 * 0.62), "the longest word, at 0.62 em a character");
+  assert.ok(D.paroleLarga("`VARIABILE_SPERIMENTALE_DEL_RUOLO`", 12) > D.paroleLarga("VARIABILE_SPERIMENTALE_DEL_RUOLO", 12) * 0.9, "code counts at 0.92 of the size");
+  assert.equal(D.paroleLarga("", 12), 0);
+  const tab = { headers: ["Dove", "Prima", "Dopo"], rows: [["a", "b", "`VARIABILE_SPERIMENTALE_DEL_RUOLO_A`"], ["a", { text: "x", tone: "verde" }, "y"]] };
+  const col = D.colonneTabella(tab);
+  assert.equal(col.length, 3);
+  assert.ok(col[2] > 200 && col[2] > col[0] * 5, "the column with the long token needs its width");
+  assert.ok(col[1] >= D.paroleLarga("Prima", 11), "a header counts too");
+  assert.equal(D.larghezzaTabella(col), col[0] + col[1] + col[2] + 16 + 14);
+  assert.ok(D.larghezzaCarta({ table: tab }) >= col[2], "a card with that table is at least that wide");
+  assert.ok(D.larghezzaCarta({ paragraphs: ["una riga normale con parole corte"] }) < 120, "ordinary text asks for little");
+  assert.ok(D.larghezzaCarta({ paragraphs: ["`unaparolamoltolungachenonvaacapo_unaparolamoltolunga`"] }) > 300, "a long word asks for its width");
+  const senza = { rows: [["Il fatto", "testo breve"], ["Come", "`una_parola_molto_lunga_senza_spazi_per_la_prova`"]] };
+  assert.ok(D.larghezzaCarta({ table: senza }) > D.ETICHETTA + 250, "a table with no headers: the label and the longest word");
+  assert.equal(D.larghezzaCarta({}), 0);
+});
+
 test("state after an answer", () => {
   assert.equal(D.statoDopo("unisci", "fatto", "aperta"), "unita");
   assert.equal(D.statoDopo("pronta-unisci", "parziale", "bozza"), "aperta");
@@ -276,6 +318,26 @@ test("pagina.json rewritten by the executor: read again, operations back", async
   assert.equal(b.v.usata, null);
   assert.equal(b.v.statoEsito, null);
   assert.equal(b.v.statoMostrato(), "unita");
+});
+
+test("a card whose table has no headers shows its rows; a wide card scrolls sideways", async () => {
+  const p = JSON.parse(PAGINA);
+  p.sections.push({ id: "larga", title: "Larga", cards: [
+    { id: "carta-fatto", title: "Il fatto che la rende sicura", tone: "blu", table: { rows: [
+      ["Il fatto", "Ogni ruolo riceve solo ciò che gli spetta"], ["Gradino della prova", "4 di 5"]] } },
+    { id: "carta-larga", title: "Cosa cambia", tone: "arancione", table: { headers: ["Dove", "Dopo"], rows: [
+      ["a.md", "`VARIABILE_SPERIMENTALE_DEL_RUOLO` nel ruolo A"]] } },
+  ] });
+  const file = new Map([[`${CART}/pagina.json`, JSON.stringify(p)]]);
+  const b = await Banco.crea({ file, exec: (cmd) => (cmd === "/casa/bin/pr-revisione-ai" ? ok(ELENCO) : { code: 0, stdout: "", stderr: "" }) });
+  await b.avvia();
+  await b.clic(`rev-${NOME}`);
+  await b.clic("nav-larga");
+  const t = b.testi();
+  for (const x of ["Il fatto", "Gradino della prova", "spetta", "Dove", "SPERIMENTALE"]) assert.ok(t.some((y) => y.includes(x)), x);
+  const usati = metodi(b.albero);
+  assert.ok(usati.has("overflow_x_scroll"), "each card scrolls sideways when its content is wider");
+  assert.deepEqual(b.errori, []);
 });
 
 test("V1: the same review's Lavish session in the web block", async () => {
