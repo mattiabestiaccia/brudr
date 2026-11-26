@@ -84,7 +84,8 @@ export const writeTextFile = async (p, testo, atteso) => b().scrivi(p, testo, at
 export const watchFolder = (d) => b().guarda(d);
 export const layout = () => clone(b().layout);
 export const run = (n, a) => { b().run(n, a); return null; };
-export const shared = (k) => (k === "layout" ? "${NOME_LAYOUT}" : null);
+export const shared = (k) => (k === "layout" ? "${NOME_LAYOUT}" : b().condivisi.get(k) ?? null);
+export const setShared = (k, v) => { b().condivisi.set(k, clone(v)); return null; };
 export const theme = () => new Proxy({}, { get: (_t, k) => String(k) });
 export const settings = () => ({ zoom: 1, font_family: "JetBrains Mono" });
 export const notify = (n) => { b().avvisi.push(n); return null; };
@@ -162,6 +163,7 @@ export class Banco {
     this.file.set?.(`${APP}/layouts/${NOME_LAYOUT}.json`, JSON.stringify(this.layout, null, 2) + "\n");
     this.chiamate = []; this.comandi = []; this.avvisi = []; this.errori = [];
     this.comandiChiesti = 0;
+    this.condivisi = new Map();
     this.pendenti = new Set(); this.attese = []; this.timer = [];
     globalThis.BRUDR = this;
   }

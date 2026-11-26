@@ -611,6 +611,43 @@ class ModPannelli(unittest.TestCase):
         self.assertEqual([c["id"] for c in figli], ["spf-vista", "files"], "the view's block goes before Superfile's")
         self.assertEqual(figli[0]["content"], {"terminal": "brudr-spf-vista"})
 
+    @unittest.skipUnless(shutil.which("node"), "node not installed")
+    def test_pallino_viola_delle_revisioni_nuove(self):
+        """The purple dot on Revisioni: new = open or draft PR with a page, head not shown yet."""
+        d = tempfile.mkdtemp(prefix="pannelli-pallino-")
+        self.addCleanup(shutil.rmtree, d, True)
+        layout = os.path.join(d, "brudr-pannelli.json")
+        r = subprocess.run([sys.executable, "-B", CREA, TRASPARENTE, layout], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        r = subprocess.run(["node", PROVA_MOD, MODS, layout], capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        e = json.loads(r.stdout)["pallino"]
+        for k, v in e.items():
+            if isinstance(v, dict) and "falliti" in v:
+                self.assertEqual((v["falliti"], v.get("avvisi", [])), ([], []), k)
+        acceso = lambda k: (e[k]["acceso"], e[k]["nuove"])
+        # Open PR with a page, never seen: on. Merged PR and review with no page: no.
+        self.assertEqual(acceso("nuova"), (True, ["o-r-1"]))
+        self.assertTrue(e["soloRevisioni"], "only the Revisioni button has the dot")
+        # Opened in the panel (the revisioni mod asks): out, and the head is written down.
+        self.assertEqual(acceso("vista"), (False, []))
+        self.assertEqual(e["vista"]["viste"]["o-r-1"]["testa"], "aaaaaaa")
+        # The executor redid the page for the same head (a note, an event): still out.
+        self.assertEqual(acceso("stessaTesta"), (False, []))
+        # A new head: on again; opening it puts it out with the new head.
+        self.assertEqual(acceso("testaNuova"), (True, ["o-r-1"]))
+        self.assertEqual(acceso("dopoLaTestaNuova"), (False, []))
+        self.assertEqual(e["dopoLaTestaNuova"]["viste"]["o-r-1"]["testa"], "bbbbbbb")
+        # A draft PR counts; a failing executor leaves the dot as it was; a merged PR puts it out.
+        self.assertEqual(acceso("bozza"), (True, ["o-r-4"]))
+        self.assertEqual(acceso("esecutoreGuasto"), (True, ["o-r-4"]))
+        self.assertEqual(acceso("unita"), (False, []))
+        # A restart: what was seen stays seen, the persisted shared key is replaced, no write.
+        self.assertEqual(acceso("riavvio"), (True, ["o-r-4"]))
+        self.assertTrue(e["riavvio"]["fileUguale"])
+        # A name that is not a review's writes nothing.
+        self.assertEqual(e["nomeStorto"], {"viste": ["o-r-1"], "falliti": []})
+
     def test_niente_layout_switch_per_rimettere_i_blocchi(self):
         """layout.switch saves before it loads: it would write the file without the block."""
         self.assertNotIn("layout.switch", self.js)

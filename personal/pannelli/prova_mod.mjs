@@ -44,7 +44,10 @@ class Brudr {
     this.avvisi = [];
     this.attese = new Set();
     this.timer = [];
+    this.cadenze = []; // timer.every callbacks: the scenarios run them by hand
     this.eventi = [];
+    this.condivisi = new Map(); // the mods' shared keys
+    this.elencoRevisioni = []; // what pr-revisione-ai elenco answers
     this.fileChrome = null;
     this.chrome = null;
     this.scritto = "";
@@ -139,6 +142,15 @@ class Brudr {
     return null;
   }
 
+  // exec: the fake pr-revisione-ai answers the list set in elencoRevisioni (null: it fails); mkdir does nothing.
+  exec(comando) {
+    if (comando.endsWith("/pr-revisione-ai")) {
+      return this.elencoRevisioni === null ? { code: 1, stdout: "", stderr: "boom" }
+        : { code: 0, stdout: JSON.stringify({ mostrate: this.elencoRevisioni.length, totale: this.elencoRevisioni.length, revisioni: this.elencoRevisioni }), stderr: "" };
+    }
+    return { code: 0, stdout: "", stderr: "" };
+  }
+
   // ---- core
   hc(args) {
     this.chiamateCore.push(args);
@@ -207,7 +219,7 @@ export const layout = () => clone(b().chrome);
 export const theme = () => new Proxy({}, { get: (_t, k) => String(k) });
 export const run = (n, a) => b().run(n, a);
 export const hc = async (args) => b().hc(args);
-export const exec = async () => ({ code: 0, stdout: "", stderr: "" });
+export const exec = async (c, a) => b().exec(c, a);
 export const home = () => "/casa";
 export const appHome = () => "${APP}";
 export const readTextFile = async (p) => b().file.get(p) ?? null;
@@ -217,14 +229,15 @@ export const writeTextFile = async (p, testo, atteso) => {
   b().eventi.push(p);
   return null;
 };
-export const shared = (k) => (k === "layout" ? "${NOME}" : null);
+export const watchFolder = () => Promise.reject(new Error("no watch in the fake brudr")); // the mod falls back to its timer
+export const shared = (k) => (k === "layout" ? "${NOME}" : b().condivisi.get(k) ?? null);
 export const notify = (n) => { b().avvisi.push(n.body); return null; };
 export const openOverlay = () => null;
 export const window = () => ({ platform: "macos", titlebar: "none", buttons: false, maximized: false, fullscreen: false, active: true });
 export const settings = () => ({ zoom: 1 });
 // No mod command arrives in these scenarios: nextCommand rejects, as when the app shuts down.
 export const nextCommand = () => Promise.reject(new Error("herdr-app is shutting down"));
-export const setShared = () => null;`);
+export const setShared = (k, v) => { b().condivisi.set(k, clone(v)); return null; };`);
 globalThis.MEMORIA = new Map(); // localStorage, new for each scenario
 globalThis.localStorage = { getItem: (k) => MEMORIA.get(k) ?? null, setItem: (k, v) => MEMORIA.set(k, String(v)) };
 
@@ -253,7 +266,7 @@ function cx(b) {
       pr.catch((e) => b.falliti.push(`mod error: ${e?.stack ?? e}`)).finally(() => b.attese.delete(pr));
     },
     notify() {},
-    timer: { after: (_ms, f) => b.timer.push(() => f(c)) },
+    timer: { after: (_ms, f) => b.timer.push(() => f(c)), every: (_ms, f) => b.cadenze.push(() => f(c)) },
   };
   return c;
 }
@@ -443,7 +456,73 @@ async function revisioni() {
   return { aperto, web, nascosto, ritorno: stato(), chiamate: b.chiamateCore, memorizzato: JSON.parse(MEMORIA.get("panels") ?? "{}") };
 }
 
+// Scenario: the purple dot on Revisioni (nuove.js): a review of an open PR nobody opened in
+// the panel lights it; opening it (the revisioni mod asks through the shared key) puts it out;
+// the executor redoing the page for the same head does not relight it, a new head does; a
+// merged or closed PR, a review with no page, and a failing executor change nothing; a
+// restart keeps what was seen.
+async function pallino() {
+  globalThis.MEMORIA = new Map();
+  const b = new Brudr(fs.readFileSync(layoutFile, "utf8"));
+  globalThis.BRUDR = b;
+  const CART = "/casa/.local/state/pr-revisione", VISTE = `${APP}/data/pannelli/revisioni-viste.json`;
+  const pagina = (testa) => JSON.stringify({ header: { facts: [{ label: "PR", text: "#1" }, { label: "Head", text: "`" + testa + "`" }] }, sections: [] });
+  const rev = (nome, stato, generata, extra = {}) => ({ nome, stato, generata, titolo: nome, repo: "o/r", numero: 1,
+    cartella: `${CART}/${nome}`, pagina_json: `${CART}/${nome}/pagina.json`, ...extra });
+  const metti = (nome, testa) => b.file.set(`${CART}/${nome}/pagina.json`, pagina(testa));
+  metti("o-r-1", "aaaaaaa"); metti("o-r-2", "ccccccc"); metti("o-r-3", "ddddddd");
+  b.elencoRevisioni = [rev("o-r-1", "aperta", 1), rev("o-r-2", "unita", 1), rev("o-r-3", "bozza", 1, { pagina_json: null })];
+  let v = new Pannelli();
+  v.init(null, cx(b));
+  await quieto(b, v);
+  const punto = () => {
+    const e = trovaElemento(b.albero, "pallino-revisioni");
+    return { acceso: Boolean(e) };
+  };
+  const stato = () => ({ ...punto(), nuove: b.condivisi.get("revisioni.nuove"), viste: JSON.parse(b.file.get(VISTE) ?? "{}"),
+    falliti: b.falliti, avvisi: b.avvisi });
+  const rileggi = async () => { b.cadenze.forEach((f) => f()); await quieto(b, v); };
+  const apertaDa = async (nome, n) => { b.condivisi.set("revisioni.aperta", { nome, n }); await quieto(b, v); };
+  const out = {};
+  out.nuova = stato(); // o-r-1 open with a page and never seen; o-r-2 merged, o-r-3 without a page: only o-r-1
+  out.soloRevisioni = ["files", "neovim", "changes", "quota", "tasti", "privato", "browser"]
+    .every((c) => !JSON.stringify(trovaElemento(b.albero, `pannello-${c}`).figli.map((f) => f?._e?.id ?? null)).includes("pallino-revisioni"));
+  await apertaDa("o-r-1", 1);
+  out.vista = stato(); // opened in the panel: out
+  b.elencoRevisioni = [rev("o-r-1", "aperta", 2), rev("o-r-2", "unita", 1), rev("o-r-3", "bozza", 1, { pagina_json: null })];
+  await rileggi();
+  out.stessaTesta = stato(); // the executor redid the page, same head: still out
+  metti("o-r-1", "bbbbbbb");
+  b.elencoRevisioni = [rev("o-r-1", "aperta", 3), rev("o-r-2", "unita", 1)];
+  await rileggi();
+  out.testaNuova = stato(); // a new head: on again
+  await apertaDa("o-r-1", 2);
+  out.dopoLaTestaNuova = stato();
+  metti("o-r-4", "eeeeeee");
+  b.elencoRevisioni = [rev("o-r-4", "bozza", 1), rev("o-r-1", "aperta", 3)];
+  await rileggi();
+  out.bozza = stato(); // a draft PR counts
+  b.elencoRevisioni = null; // the executor fails: nothing changes
+  await rileggi();
+  out.esecutoreGuasto = stato();
+  b.elencoRevisioni = [rev("o-r-4", "unita", 2), rev("o-r-1", "aperta", 3)];
+  await rileggi();
+  out.unita = stato(); // merged: out
+  b.elencoRevisioni = [rev("o-r-4", "bozza", 2), rev("o-r-1", "aperta", 3)];
+  await rileggi();
+  const prima = b.file.get(VISTE);
+  b.condivisi.set("revisioni.nuove", ["vecchio"]);
+  globalThis.MEMORIA = new Map();
+  v = new Pannelli(); // a restart: the seen state is in the file, the persisted shared key is replaced
+  v.init(null, cx(b));
+  await quieto(b, v);
+  out.riavvio = { ...stato(), fileUguale: b.file.get(VISTE) === prima };
+  await apertaDa("../x", 3); // a name that is not a review's: nothing written
+  out.nomeStorto = { viste: Object.keys(JSON.parse(b.file.get(VISTE))), falliti: b.falliti };
+  return out;
+}
+
 const out = { salvaPrima: await scenario(true), senzaSalvare: await scenario(false), fileSenzaNeovim: await fileSenzaNeovim(),
-  browser: await browser(), vista: await vista(), revisioni: await revisioni() };
+  browser: await browser(), vista: await vista(), revisioni: await revisioni(), pallino: await pallino() };
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(JSON.stringify(out, null, 1));
