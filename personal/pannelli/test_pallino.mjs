@@ -1,5 +1,5 @@
-// Tests of the purple dot of the reviews (decision of 26 November 2026: a PR review is not
-// opened in Bruvish, brudr shows a purple dot on «Revisioni»): the logic in nuove.js, and the
+// Tests of the purple dot of the reviews (a PR review is not opened in Bruvish, brudr shows a
+// purple dot on «Revisioni»): the logic in nuove.js, and the
 // panel's side of the channel with the pannelli mod. The bar's side (the dot on the button, the
 // seen state in the file) is in test_pannelli.py (test_pallino_viola_delle_revisioni_nuove).
 //

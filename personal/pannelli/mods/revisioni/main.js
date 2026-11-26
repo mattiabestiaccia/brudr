@@ -40,8 +40,7 @@ const RIGHE_PER_FILE = 600; // a diff file longer than this: the rest is in Lavi
 const icona = (nome) => `mods/revisioni/icone/${nome}.svg`;
 const bin = (nome) => `${home()}/bin/${nome}`;
 const OPEN = "/usr/bin/open";
-// The purple dot (decision of 26 November 2026: a PR review is not opened in Bruvish by the
-// agent, brudr marks it): the pannelli mod works out the new reviews and publishes their names
+// The purple dot (a PR review is not opened in Bruvish by the agent, brudr marks it): the pannelli mod works out the new reviews and publishes their names
 // in NUOVE; this mod tells it, in APERTA, which review the panel shows, so it counts as seen.
 const NUOVE = "revisioni.nuove", APERTA = "revisioni.aperta";
 

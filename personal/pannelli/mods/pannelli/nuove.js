@@ -1,8 +1,8 @@
 // nuove: which PR reviews are new, for the purple dot on the Revisioni button and in
 // the panel's list. No herdr import here, so the tests load it with plain node.
 //
-// Decision of 26 November 2026: a review of a PR is no longer opened in Bruvish by
-// the agent that prepares it; brudr shows a purple dot on «Revisioni» instead.
+// A review of a PR is not opened in Bruvish by the agent that prepares it: brudr
+// shows a purple dot on «Revisioni» instead.
 //
 // New = a review of an open or draft PR, with a page, whose head the panel has not
 // shown yet. The executor regenerates a page often (events, notes, an operation)
